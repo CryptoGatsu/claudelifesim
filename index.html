@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1c1208">
 <title>The Chronicle of Aldwyn — A Medieval Life Simulator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -551,20 +553,150 @@
     #panel { font-size: 13px; padding: 12px 10px; }
     #god-panel { padding: 10px 8px; }
   }
-  /* Only stack on very narrow phones; otherwise the side panels become scrollable */
-  @media (max-width: 700px) {
+
+  /* --- MOBILE: Map on top, tabbed panels below --- */
+  /* Mobile tab bar — hidden on desktop */
+  #mobile-tabs {
+    display: none;
+  }
+
+  @media (max-width: 820px) {
     body {
       grid-template-columns: 1fr;
-      grid-template-rows: minmax(60vh, 1fr) auto auto;
+      grid-template-rows: 1fr auto;
+      gap: 0;
+      padding: 6px;
     }
-    #god-panel, #panel { max-height: 240px; }
-    #god-panel { order: 2; }
-    #stage { order: 1; min-height: 60vh; }
-    #panel { order: 3; }
+
+    /* Map dominates the top */
+    #stage {
+      order: 1;
+      min-height: 55vh;
+      grid-row: 1;
+      grid-column: 1;
+    }
+
+    /* Tab bar between map and panels */
+    #mobile-tabs {
+      display: flex;
+      order: 2;
+      grid-row: 2;
+      grid-column: 1;
+      background: var(--ink);
+      border-left: 3px solid var(--ink);
+      border-right: 3px solid var(--ink);
+      margin: 0;
+    }
+    #mobile-tabs .tab {
+      flex: 1;
+      padding: 10px 4px;
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: var(--ink);
+      color: var(--parchment-2);
+      border: none;
+      border-right: 1px solid var(--ink-soft);
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    #mobile-tabs .tab:last-child { border-right: none; }
+    #mobile-tabs .tab.active {
+      background: var(--parchment);
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    /* Stack panels in same grid cell; toggle with .mobile-hidden */
+    #god-panel, #panel {
+      order: 3;
+      grid-row: 3;
+      grid-column: 1;
+      max-height: 40vh;
+      min-height: 200px;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+    #god-panel.mobile-hidden, #panel.mobile-hidden { display: none; }
+
+    /* Faith orb mobile sizing */
+    .faith-orb { font-size: 14px; padding: 6px; }
+
+    /* God buttons stay touchable */
+    .god-btn { padding: 10px 10px; font-size: 12px; min-height: 40px; }
+    button.ctrl { padding: 9px 12px; min-height: 38px; font-size: 12px; }
+
+    /* Header smaller on phones */
+    #title-bar h1 { font-size: 18px; }
+    #title-bar .sub { display: none; }
+
+    /* Clock/badge tighter */
+    #clock { font-size: 10px; padding: 4px 8px; top: 6px; left: 6px; }
+    #weather-badge { font-size: 9px; padding: 3px 6px; top: 36px; left: 6px; }
+    #threat-warn { font-size: 11px; padding: 4px 8px; top: 6px; right: 6px; }
+
+    /* Tooltip: bigger, above the finger */
+    #tooltip {
+      font-size: 14px;
+      padding: 8px 12px;
+      transform: translate(-50%, -100%) translateY(-32px);
+    }
+
+    /* Transcript at top of stage on mobile, not bottom (it gets buried by tabs) */
+    #transcript {
+      top: 60px;
+      bottom: auto;
+      max-height: 40%;
+      width: calc(100% - 24px);
+      font-size: 13px;
+    }
+
+    /* Long-press hint indicator */
+    #longpress-hint {
+      position: absolute;
+      pointer-events: none;
+      width: 50px; height: 50px;
+      border: 3px solid var(--gold-bright);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.5s ease-out;
+      z-index: 11;
+    }
+    #longpress-hint.on { transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* Very small phones */
+  @media (max-width: 420px) {
+    #title-bar { display: none; }
+    .god-section h3 { font-size: 10px; }
+    .stats { font-size: 13px; }
+    #stage { min-height: 50vh; }
+  }
+
+  /* Prevent unwanted touch behaviors on the stage */
+  #stage {
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .god-btn, button.ctrl, #mobile-tabs .tab {
+    -webkit-tap-highlight-color: rgba(184,134,11,0.3);
+    touch-action: manipulation;
   }
 </style>
 </head>
 <body>
+
+<!-- MOBILE TAB BAR (hidden on desktop, between map and panels) -->
+<div id="mobile-tabs">
+  <button class="tab active" data-tab="god">⚡ Powers</button>
+  <button class="tab" data-tab="info">📜 Realm</button>
+</div>
 
 <!-- GOD PANEL -->
 <aside id="god-panel">
@@ -637,6 +769,7 @@
   <div id="vignette"></div>
   <div id="weather-overlay"></div>
   <div id="tooltip"></div>
+  <div id="longpress-hint"></div>
 
   <div id="transcript">
     <div class="head">
@@ -677,7 +810,7 @@
 
 <script>
 /* ============================================================
-   THE CHRONICLE OF ALDWYN v3
+   THE CHRONICLE OF ALDWYN v3 — Tyler
    SECTIONS:
      1.  CONSTANTS & CANVAS
      2.  TIME
@@ -2793,7 +2926,7 @@ function renderLog() {
   ).join('');
 }
 
-/* ------- SECTION 26: INPUT ------- */
+/* ------- SECTION 26: INPUT (mouse + touch unified via pointer events) ------- */
 function screenToWorld(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
   const mx = (clientX - r.left) * (canvas.width / r.width);
@@ -2802,6 +2935,8 @@ function screenToWorld(clientX, clientY) {
 }
 function villagerAt(wx, wy, includeInside = false) {
   let best = null, bd = 18;
+  // Larger hit radius on touch devices
+  if (IS_TOUCH) bd = 24;
   for (const v of villagers) {
     if (v.hp <= 0) continue;
     if (!includeInside && v.inside) continue;
@@ -2811,7 +2946,7 @@ function villagerAt(wx, wy, includeInside = false) {
   return best;
 }
 function enemyAt(wx, wy) {
-  let best = null, bd = 18;
+  let best = null, bd = IS_TOUCH ? 24 : 18;
   for (const e of enemies) {
     const d = Math.hypot(e.x - wx, e.y - wy);
     if (d < bd) { bd = d; best = e; }
@@ -2819,63 +2954,139 @@ function enemyAt(wx, wy) {
   return best;
 }
 
-let dragStart = null;
-let mouseMoved = false;
-stage.addEventListener('mousedown', (ev) => {
-  if (ev.button !== 0) return;
+// Detect touch device
+const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+// Unified pointer state
+let pointerStart = null;     // {clientX, clientY, wx, wy, id}
+let pointerMoved = false;
+let longPressTimer = null;
+const LONG_PRESS_MS = 450;
+const longPressHint = document.getElementById('longpress-hint');
+
+function clearLongPress() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  if (longPressHint) longPressHint.classList.remove('on');
+}
+
+function startHolding(v, wx, wy) {
+  heldId = v.id;
+  heldOffsetX = wx - v.x;
+  heldOffsetY = wy - v.y;
+  v.path = []; v.inside = null; v.chatPartner = null; v.fightTarget = null; v.state = 'idle';
+  log(`A divine hand lifts ${v.name} from the earth.`, 'god');
+  stage.classList.add('dragging');
+  // Haptic feedback on supported devices
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function dropHeld() {
+  if (!heldId) return;
+  const v = villagers.find(x => x.id === heldId);
+  if (v) {
+    const g = worldToGrid(v.x, v.y);
+    const tile = map[g.gy] && map[g.gy][g.gx];
+    if (tile === 2) { v.fallingInWater = true; log(`${v.name} plunges into the river!`, 'god'); }
+    else if (tile === 3) {
+      log(`${v.name} is set down in the dark forest…`, 'god');
+      if (Math.random() < 0.3) enemies.push({ type: 'wolf', x: v.x + 80, y: v.y + 20, hp: 35, dmg: 0.6, speed: 0.9 });
+    } else log(`The divine hand releases ${v.name}.`, 'god');
+    decideAction(v);
+  }
+  heldId = null;
+  stage.classList.remove('dragging');
+}
+
+stage.addEventListener('pointerdown', (ev) => {
+  if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+  // Capture for reliable up/move
+  stage.setPointerCapture(ev.pointerId);
+
   const { wx, wy } = screenToWorld(ev.clientX, ev.clientY);
+
+  // Targeted god power: tap to apply
   if (activePower) { applyTargetedPower(activePower, wx, wy); return; }
+
   const v = villagerAt(wx, wy);
   if (v) {
-    dragStart = { x: ev.clientX, y: ev.clientY, id: v.id };
-    heldOffsetX = wx - v.x; heldOffsetY = wy - v.y;
-    mouseMoved = false;
-  }
-});
-stage.addEventListener('mousemove', (ev) => {
-  const { wx, wy } = screenToWorld(ev.clientX, ev.clientY);
-  const hov = villagerAt(wx, wy);
-  hoverId = hov ? hov.id : null;
-  updateTooltip();
-  if (dragStart) {
-    if (!heldId && (Math.abs(ev.clientX - dragStart.x) > 5 || Math.abs(ev.clientY - dragStart.y) > 5)) {
-      heldId = dragStart.id;
-      const v = villagers.find(x => x.id === heldId);
-      if (v) {
-        v.path = []; v.inside = null; v.chatPartner = null; v.fightTarget = null; v.state = 'idle';
-        log(`A divine hand lifts ${v.name} from the earth.`, 'god');
+    pointerStart = { clientX: ev.clientX, clientY: ev.clientY, wx, wy, id: v.id, pointerType: ev.pointerType };
+    pointerMoved = false;
+
+    // On touch: start long-press timer. On mouse: start drag immediately on threshold (legacy behavior).
+    if (ev.pointerType === 'touch' || ev.pointerType === 'pen') {
+      // Show the hint ring at finger position
+      if (longPressHint) {
+        const r = stage.getBoundingClientRect();
+        longPressHint.style.left = (ev.clientX - r.left) + 'px';
+        longPressHint.style.top = (ev.clientY - r.top) + 'px';
+        longPressHint.classList.add('on');
       }
-      stage.classList.add('dragging');
-      mouseMoved = true;
+      longPressTimer = setTimeout(() => {
+        longPressTimer = null;
+        if (longPressHint) longPressHint.classList.remove('on');
+        if (!pointerMoved && pointerStart) {
+          // Activate hold
+          const villager = villagers.find(x => x.id === pointerStart.id);
+          if (villager) startHolding(villager, pointerStart.wx, pointerStart.wy);
+        }
+      }, LONG_PRESS_MS);
     }
-    if (heldId) {
-      const v = villagers.find(x => x.id === heldId);
-      if (v) { v.x = wx - heldOffsetX; v.y = wy - heldOffsetY; }
-    }
+  } else {
+    pointerStart = { clientX: ev.clientX, clientY: ev.clientY, wx, wy, id: null, pointerType: ev.pointerType };
+    pointerMoved = false;
   }
 });
-stage.addEventListener('mouseup', (ev) => {
+
+stage.addEventListener('pointermove', (ev) => {
+  const { wx, wy } = screenToWorld(ev.clientX, ev.clientY);
+
+  // Hover (only meaningful for mouse)
+  if (ev.pointerType === 'mouse') {
+    const hov = villagerAt(wx, wy);
+    hoverId = hov ? hov.id : null;
+    updateTooltip();
+  }
+
+  if (!pointerStart) return;
+
+  const dx = Math.abs(ev.clientX - pointerStart.clientX);
+  const dy = Math.abs(ev.clientY - pointerStart.clientY);
+  const moveThreshold = ev.pointerType === 'touch' ? 12 : 5;
+  if (dx > moveThreshold || dy > moveThreshold) {
+    pointerMoved = true;
+    // Cancel pending long-press on movement
+    clearLongPress();
+  }
+
+  // Mouse: legacy behavior - drag starts on move past threshold
+  if (ev.pointerType === 'mouse' && pointerStart.id && !heldId && pointerMoved) {
+    const v = villagers.find(x => x.id === pointerStart.id);
+    if (v) startHolding(v, pointerStart.wx, pointerStart.wy);
+  }
+
+  // While holding, follow the pointer
   if (heldId) {
     const v = villagers.find(x => x.id === heldId);
-    if (v) {
-      const g = worldToGrid(v.x, v.y);
-      const tile = map[g.gy] && map[g.gy][g.gx];
-      if (tile === 2) { v.fallingInWater = true; log(`${v.name} plunges into the river!`, 'god'); }
-      else if (tile === 3) {
-        log(`${v.name} is set down in the dark forest…`, 'god');
-        if (Math.random() < 0.3) enemies.push({ type: 'wolf', x: v.x + 80, y: v.y + 20, hp: 35, dmg: 0.6, speed: 0.9 });
-      } else log(`The divine hand releases ${v.name}.`, 'god');
-      decideAction(v);
-    }
-    heldId = null;
-    stage.classList.remove('dragging');
-  } else if (dragStart && !mouseMoved) {
+    if (v) { v.x = wx - heldOffsetX; v.y = wy - heldOffsetY; }
+  }
+});
+
+stage.addEventListener('pointerup', (ev) => {
+  clearLongPress();
+
+  if (heldId) {
+    dropHeld();
+  } else if (pointerStart && !pointerMoved) {
+    // It was a tap/click — select or open transcript
     const { wx, wy } = screenToWorld(ev.clientX, ev.clientY);
     const v = villagerAt(wx, wy);
     if (v) {
       selectedId = v.id;
-      // If they're chatting, open transcript
       if (v.chatPartner || (v.chatHistory && v.chatHistory.length > 0)) openTranscript(v);
+      // On mobile, auto-switch to Realm tab when selecting a villager
+      if (IS_TOUCH && window.matchMedia('(max-width: 820px)').matches) {
+        switchMobileTab('info');
+      }
     } else {
       selectedId = null;
       document.getElementById('transcript').classList.remove('on');
@@ -2883,19 +3094,28 @@ stage.addEventListener('mouseup', (ev) => {
     }
     refreshPanel();
   }
-  dragStart = null;
+
+  pointerStart = null;
+  pointerMoved = false;
 });
-stage.addEventListener('mouseleave', () => {
-  if (heldId) {
-    const v = villagers.find(x => x.id === heldId);
-    if (v) { v.x = Math.max(20, Math.min(WORLD_W-20, v.x)); v.y = Math.max(20, Math.min(WORLD_H-20, v.y)); }
-    heldId = null;
-    stage.classList.remove('dragging');
-  }
+
+stage.addEventListener('pointercancel', () => {
+  clearLongPress();
+  if (heldId) dropHeld();
+  pointerStart = null;
+  pointerMoved = false;
+});
+
+stage.addEventListener('pointerleave', (ev) => {
+  if (ev.pointerType !== 'mouse') return;
   hoverId = null;
   updateTooltip();
 });
 
+// Prevent the browser's context menu on long-press (lets our handler fire)
+stage.addEventListener('contextmenu', (ev) => ev.preventDefault());
+
+// Speed controls
 document.querySelectorAll('.ctrl').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.ctrl').forEach(b => b.classList.remove('active'));
@@ -2904,14 +3124,17 @@ document.querySelectorAll('.ctrl').forEach(btn => {
     TIME.speed = s; TIME.paused = s === 0;
   });
 });
+
+// God-power buttons. On mobile, also auto-switch to powers tab (already there usually).
 document.querySelectorAll('.god-btn').forEach(btn => {
   btn.addEventListener('click', () => tryPower(btn.dataset.power));
 });
+
 document.getElementById('transcript-close').addEventListener('click', () => {
   document.getElementById('transcript').classList.remove('on');
   transcriptId = null;
 });
-// Escape cancels active power
+
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && activePower) {
     activePower = null;
@@ -2919,6 +3142,35 @@ document.addEventListener('keydown', (ev) => {
     document.querySelectorAll('.god-btn').forEach(b => b.classList.remove('active'));
   }
 });
+
+/* Mobile tab switching */
+function switchMobileTab(tab) {
+  const godPanel = document.getElementById('god-panel');
+  const infoPanel = document.getElementById('panel');
+  const tabs = document.querySelectorAll('#mobile-tabs .tab');
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  if (tab === 'god') {
+    godPanel.classList.remove('mobile-hidden');
+    infoPanel.classList.add('mobile-hidden');
+  } else {
+    godPanel.classList.add('mobile-hidden');
+    infoPanel.classList.remove('mobile-hidden');
+  }
+}
+document.querySelectorAll('#mobile-tabs .tab').forEach(t => {
+  t.addEventListener('click', () => switchMobileTab(t.dataset.tab));
+});
+// Initialize: on mobile, hide info panel by default (Powers tab active)
+function initMobileLayout() {
+  if (window.matchMedia('(max-width: 820px)').matches) {
+    document.getElementById('panel').classList.add('mobile-hidden');
+  } else {
+    document.getElementById('god-panel').classList.remove('mobile-hidden');
+    document.getElementById('panel').classList.remove('mobile-hidden');
+  }
+}
+initMobileLayout();
+window.addEventListener('resize', initMobileLayout);
 
 /* ------- SECTION 27: MAIN LOOP ------- */
 let lastT = performance.now();
