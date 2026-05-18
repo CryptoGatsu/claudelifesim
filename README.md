@@ -1,6 +1,6 @@
 # 🏰 Claude Life Sim — The Chronicle of Aldwyn
 
-> A medieval village simulation built entirely by AI in a single afternoon.
+> A medieval village simulation built entirely by AI in a single night.
 > Autonomous villagers live, work, talk, fight, marry, and die — and you watch over them as an unseen god.
 
 **▶ Play it live:** [claudelifesim.vercel.app](https://claudelifesim.vercel.app)
