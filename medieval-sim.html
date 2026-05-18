@@ -1,0 +1,2980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Chronicle of Aldwyn — A Medieval Life Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English:ital@0;1&family=IM+Fell+DW+Pica:ital@0;1&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --parchment:   #efe1c2;
+    --parchment-2: #d9c79a;
+    --parchment-3: #c4ad7d;
+    --ink:         #1c1208;
+    --ink-soft:    #4a3018;
+    --blood:       #8b1e1e;
+    --gold:        #b8860b;
+    --gold-bright: #e8c547;
+    --moss:        #4a6b3a;
+    --poor:        #6b5841;
+    --middle:      #4f6d8a;
+    --wealthy:     #8b1e1e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #000;
+    color: var(--ink);
+    font-family: 'IM Fell English', 'Garamond', serif;
+    overflow: hidden;
+  }
+
+  body {
+    background: radial-gradient(ellipse at center, #1a0f06 0%, #000 100%);
+    display: grid;
+    grid-template-columns: 240px 1fr 380px;
+    grid-template-rows: 1fr;
+    height: 100vh;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* --- GOD PANEL (left) --- */
+  #god-panel {
+    background: var(--parchment);
+    border: 3px solid var(--ink);
+    border-radius: 4px;
+    padding: 14px 12px;
+    overflow-y: auto;
+    box-shadow: inset 0 0 60px rgba(80,40,10,0.35), 0 8px 30px rgba(0,0,0,0.7);
+    position: relative;
+  }
+  #god-panel::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(80,40,10,0.08) 1px, transparent 1px);
+    background-size: 4px 4px;
+    pointer-events: none; mix-blend-mode: multiply;
+  }
+  #god-panel > * { position: relative; z-index: 1; }
+  #god-panel h1 {
+    font-family: 'UnifrakturCook', 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 22px;
+    text-align: center;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+  }
+  #god-panel .subtitle {
+    text-align: center;
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+  }
+
+  .god-section {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--ink-soft);
+  }
+  .god-section:last-child { border-bottom: none; }
+  .god-section h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .god-section h3::after {
+    content: ""; flex: 1; height: 1px; background: var(--ink-soft);
+  }
+
+  .god-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 7px 9px;
+    margin-bottom: 5px;
+    background: var(--parchment-2);
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    cursor: pointer;
+    text-transform: uppercase;
+    text-align: left;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .god-btn:hover {
+    background: var(--ink);
+    color: var(--parchment);
+    transform: translateX(2px);
+  }
+  .god-btn.active {
+    background: var(--blood);
+    color: var(--parchment);
+    border-color: var(--blood);
+  }
+  .god-btn .icon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+  }
+  .god-btn .cost {
+    margin-left: auto;
+    font-size: 9px;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .god-btn:hover .cost { color: var(--gold-bright); }
+  .god-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .god-btn:disabled:hover { transform: none; background: var(--parchment-2); color: var(--ink); }
+
+  .faith-orb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 900;
+    padding: 8px;
+    background: var(--ink);
+    color: var(--gold-bright);
+    border: 1px solid var(--ink);
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+  }
+  .faith-orb .label {
+    font-size: 10px;
+    color: var(--parchment-2);
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.15em;
+  }
+
+  /* --- STAGE (center) --- */
+  #stage {
+    position: relative;
+    min-width: 0;     /* allow grid to shrink properly */
+    min-height: 0;
+    background: var(--parchment);
+    border: 3px solid var(--ink);
+    box-shadow: inset 0 0 80px rgba(80,40,10,0.45), 0 8px 30px rgba(0,0,0,0.7);
+    overflow: hidden;
+    border-radius: 4px;
+    cursor: crosshair;
+  }
+  #stage.dragging { cursor: grabbing; }
+  #stage.god-targeting { cursor: cell; }
+
+  #stage::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(rgba(80,40,10,0.10) 1px, transparent 1px),
+      radial-gradient(rgba(80,40,10,0.08) 1px, transparent 1px);
+    background-size: 5px 5px, 11px 11px;
+    background-position: 0 0, 3px 4px;
+    pointer-events: none; z-index: 6; mix-blend-mode: multiply;
+  }
+
+  .corner {
+    position: absolute; width: 60px; height: 60px;
+    z-index: 8; pointer-events: none; opacity: 0.5;
+  }
+  .corner.tl { top: 8px; left: 8px; }
+  .corner.tr { top: 8px; right: 8px; transform: scaleX(-1); }
+  .corner.bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+  .corner.br { bottom: 8px; right: 8px; transform: scale(-1,-1); }
+
+  canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+  #vignette {
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 5;
+    mix-blend-mode: multiply;
+    transition: background 1.5s linear;
+  }
+  #weather-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 7;
+    overflow: hidden;
+  }
+  #eclipse-overlay, #blood-moon-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 4;
+    opacity: 0;
+    transition: opacity 2s;
+  }
+  #eclipse-overlay {
+    background: radial-gradient(ellipse at center, rgba(40,20,0,0.85) 0%, rgba(0,0,0,0.95) 100%);
+  }
+  #blood-moon-overlay {
+    background: radial-gradient(ellipse at center, rgba(120,20,20,0.3) 0%, rgba(80,5,5,0.5) 100%);
+    mix-blend-mode: multiply;
+  }
+  #eclipse-overlay.on, #blood-moon-overlay.on { opacity: 1; }
+
+  /* Hover tooltip */
+  #tooltip {
+    position: absolute; z-index: 12;
+    pointer-events: none;
+    background: var(--parchment);
+    border: 2px solid var(--ink);
+    padding: 6px 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--ink);
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.4);
+    opacity: 0;
+    transform: translate(-50%, -100%) translateY(-12px);
+    transition: opacity 0.12s;
+    white-space: nowrap;
+  }
+  #tooltip.on { opacity: 1; }
+  #tooltip .sub {
+    font-family: 'IM Fell English', serif;
+    font-style: italic; font-weight: normal;
+    font-size: 11px; color: var(--ink-soft);
+    display: block; margin-top: 1px;
+  }
+  #tooltip .origin {
+    font-size: 10px; color: var(--blood);
+    font-style: italic;
+    display: block;
+  }
+
+  /* Title */
+  #title-bar {
+    position: absolute;
+    top: 12px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    text-align: center;
+    pointer-events: none;
+  }
+  #title-bar h1 {
+    font-family: 'UnifrakturCook', serif;
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--ink);
+    text-shadow: 1px 1px 0 rgba(255,240,200,0.4);
+    letter-spacing: 0.02em;
+  }
+  #title-bar .sub {
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 1px;
+  }
+
+  /* Info Panel (right) */
+  #panel {
+    background: var(--parchment);
+    border: 3px solid var(--ink);
+    border-radius: 4px;
+    padding: 16px 14px;
+    overflow-y: auto;
+    box-shadow: inset 0 0 60px rgba(80,40,10,0.35), 0 8px 30px rgba(0,0,0,0.7);
+    position: relative;
+    font-size: 14px;
+  }
+  #panel::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(80,40,10,0.08) 1px, transparent 1px);
+    background-size: 4px 4px;
+    pointer-events: none; mix-blend-mode: multiply;
+  }
+  #panel > * { position: relative; z-index: 1; }
+  #panel::-webkit-scrollbar, #god-panel::-webkit-scrollbar { width: 6px; }
+  #panel::-webkit-scrollbar-track, #god-panel::-webkit-scrollbar-track { background: var(--parchment-2); }
+  #panel::-webkit-scrollbar-thumb, #god-panel::-webkit-scrollbar-thumb { background: var(--ink-soft); border-radius: 4px; }
+
+  .section {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--ink-soft);
+  }
+  .section:last-child { border-bottom: none; }
+  .section h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section h2::after { content: ""; flex: 1; height: 1px; background: var(--ink-soft); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 12px;
+    font-family: 'IM Fell DW Pica', serif;
+    font-size: 14px;
+  }
+  .stats .k { color: var(--ink-soft); font-style: italic; }
+  .stats .v { color: var(--ink); font-weight: 700; text-align: right; font-family: 'Cinzel', serif; font-size: 13px; }
+
+  #log {
+    font-family: 'IM Fell English', serif;
+    font-size: 14px;
+    color: var(--ink);
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.45;
+  }
+  .log-entry {
+    margin-bottom: 6px;
+    padding-left: 10px;
+    border-left: 2px solid var(--ink-soft);
+  }
+  .log-entry .when {
+    font-style: italic; color: var(--ink-soft);
+    font-size: 11px; margin-right: 4px;
+  }
+  .log-entry.event-birth   { border-left-color: var(--moss); }
+  .log-entry.event-death   { border-left-color: var(--blood); }
+  .log-entry.event-raid    { border-left-color: var(--blood); background: rgba(139,30,30,0.07); }
+  .log-entry.event-vote    { border-left-color: var(--gold); }
+  .log-entry.event-fight   { border-left-color: var(--blood); background: rgba(139,30,30,0.04); }
+  .log-entry.event-talk    { border-left-color: #5a7a4a; font-style: italic; }
+  .log-entry.event-god     { border-left-color: var(--gold-bright); background: rgba(232,197,71,0.12); font-weight: 700; }
+  .log-entry.event-migrate { border-left-color: #6a4a8a; }
+  .log-entry.event-weather { border-left-color: #4a6a8a; font-style: italic; }
+
+  #selected .name {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .role-tag {
+    display: inline-block;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    padding: 2px 7px;
+    border: 1px solid var(--ink);
+    background: var(--parchment-2);
+    margin-right: 4px;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+  .role-tag.poor    { background: var(--poor);    color: var(--parchment); border-color: var(--poor); }
+  .role-tag.middle  { background: var(--middle);  color: var(--parchment); border-color: var(--middle); }
+  .role-tag.wealthy { background: var(--wealthy); color: var(--parchment); border-color: var(--wealthy); }
+  .role-tag.mayor   { background: var(--gold-bright); color: var(--ink); border-color: var(--ink); }
+  .role-tag.foreign { background: #6a4a8a; color: var(--parchment); border-color: #6a4a8a; }
+  .role-tag.sick    { background: #4a6a3a; color: var(--parchment); border-color: var(--ink); }
+
+  .bar {
+    height: 8px;
+    background: var(--parchment-2);
+    border: 1px solid var(--ink);
+    margin: 2px 0 6px;
+    overflow: hidden;
+  }
+  .bar > i {
+    display: block; height: 100%;
+    background: var(--moss);
+    transition: width 0.3s;
+  }
+  .bar.hunger > i { background: var(--blood); }
+  .bar.energy > i { background: var(--middle); }
+  .bar.social > i { background: var(--gold); }
+  .bar.skill > i  { background: var(--ink-soft); }
+  .bar.hp > i     { background: var(--blood); }
+
+  .bar-label {
+    font-size: 11px; color: var(--ink-soft);
+    font-style: italic;
+    display: flex; justify-content: space-between;
+  }
+
+  .skill-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 32px;
+    gap: 6px; align-items: center;
+    margin-bottom: 3px; font-size: 12px;
+  }
+  .skill-row .lbl {
+    font-family: 'Cinzel', serif;
+    font-size: 10px; letter-spacing: 0.08em;
+  }
+  .skill-row .val {
+    font-family: 'Cinzel', serif;
+    font-weight: 700; font-size: 11px;
+    text-align: right;
+  }
+  .skill-row.spec .lbl { color: var(--blood); font-weight: 700; }
+
+  #controls {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  button.ctrl {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    padding: 6px 10px;
+    background: var(--parchment-2);
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  button.ctrl:hover { background: var(--ink); color: var(--parchment); }
+  button.ctrl.active { background: var(--blood); color: var(--parchment); border-color: var(--blood); }
+
+  #clock {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 10;
+    font-family: 'Cinzel', serif;
+    font-size: 12px; letter-spacing: 0.2em;
+    color: var(--ink);
+    background: rgba(239,225,194,0.92);
+    border: 2px solid var(--ink);
+    padding: 6px 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  #weather-badge {
+    position: absolute;
+    top: 50px; left: 12px;
+    z-index: 10;
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: 0.15em;
+    color: var(--ink);
+    background: rgba(239,225,194,0.92);
+    border: 2px solid var(--ink);
+    padding: 4px 9px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #weather-badge.on { opacity: 1; }
+
+  #threat-warn {
+    position: absolute;
+    top: 12px; right: 12px;
+    z-index: 10;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 13px; letter-spacing: 0.2em;
+    color: var(--parchment);
+    background: var(--blood);
+    border: 2px solid var(--ink);
+    padding: 6px 13px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    animation: pulse 1s infinite alternate;
+  }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+  #threat-warn.on { opacity: 1; }
+
+  .rivals { font-size: 12px; line-height: 1.5; margin-top: 5px; }
+  .rivals .friend { color: var(--moss); font-weight: 700; }
+  .rivals .rival { color: var(--blood); font-weight: 700; }
+
+  /* Conversation transcript */
+  #transcript {
+    position: absolute;
+    bottom: 12px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    width: min(540px, 90%);
+    background: var(--parchment);
+    border: 2px solid var(--ink);
+    padding: 12px 16px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    font-family: 'IM Fell English', serif;
+    font-size: 14px;
+    color: var(--ink);
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  #transcript.on { display: block; }
+  #transcript .head {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    display: flex; justify-content: space-between;
+  }
+  #transcript .close {
+    cursor: pointer;
+    font-weight: 900;
+    color: var(--blood);
+  }
+  #transcript .line {
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+  #transcript .line .who {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--ink);
+    margin-right: 6px;
+  }
+  #transcript .line.foreign .who { color: #6a4a8a; }
+
+  @media (max-width: 1300px) {
+    body { grid-template-columns: 200px 1fr 320px; }
+  }
+  @media (max-width: 1100px) {
+    body { grid-template-columns: 180px 1fr 280px; }
+    #panel { font-size: 13px; padding: 12px 10px; }
+    #god-panel { padding: 10px 8px; }
+  }
+  /* Only stack on very narrow phones; otherwise the side panels become scrollable */
+  @media (max-width: 700px) {
+    body {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(60vh, 1fr) auto auto;
+    }
+    #god-panel, #panel { max-height: 240px; }
+    #god-panel { order: 2; }
+    #stage { order: 1; min-height: 60vh; }
+    #panel { order: 3; }
+  }
+</style>
+</head>
+<body>
+
+<!-- GOD PANEL -->
+<aside id="god-panel">
+  <h1>Divine Hand</h1>
+  <div class="subtitle">— powers of the unseen god —</div>
+
+  <div class="faith-orb">
+    <span class="label">Faith</span>
+    <span id="faith-val">100</span>
+  </div>
+
+  <div class="god-section">
+    <h3>Weather</h3>
+    <button class="god-btn" data-power="clear"><span class="icon">☼</span>Clear Skies<span class="cost">5</span></button>
+    <button class="god-btn" data-power="rain"><span class="icon">☂</span>Rain<span class="cost">10</span></button>
+    <button class="god-btn" data-power="snow"><span class="icon">❄</span>Snow<span class="cost">15</span></button>
+    <button class="god-btn" data-power="storm"><span class="icon">⚡</span>Storm<span class="cost">25</span></button>
+    <button class="god-btn" data-power="fog"><span class="icon">≋</span>Fog<span class="cost">10</span></button>
+    <button class="god-btn" data-power="drought"><span class="icon">▲</span>Drought<span class="cost">30</span></button>
+  </div>
+
+  <div class="god-section">
+    <h3>Wrath</h3>
+    <button class="god-btn" data-power="fire"><span class="icon">🜂</span>Divine Fire<span class="cost">20</span></button>
+    <button class="god-btn" data-power="plague"><span class="icon">☣</span>Plague<span class="cost">40</span></button>
+    <button class="god-btn" data-power="earthquake"><span class="icon">≣</span>Earthquake<span class="cost">50</span></button>
+    <button class="god-btn" data-power="smite"><span class="icon">⚡</span>Smite<span class="cost">15</span></button>
+  </div>
+
+  <div class="god-section">
+    <h3>Celestial</h3>
+    <button class="god-btn" data-power="eclipse"><span class="icon">☉</span>Eclipse<span class="cost">35</span></button>
+    <button class="god-btn" data-power="bloodmoon"><span class="icon">☾</span>Blood Moon<span class="cost">45</span></button>
+  </div>
+
+  <div class="god-section">
+    <h3>Mercy</h3>
+    <button class="god-btn" data-power="bless"><span class="icon">✦</span>Bless<span class="cost">8</span></button>
+    <button class="god-btn" data-power="feed"><span class="icon">✧</span>Feast<span class="cost">15</span></button>
+    <button class="god-btn" data-power="heal"><span class="icon">✚</span>Healing<span class="cost">25</span></button>
+    <button class="god-btn" data-power="cure"><span class="icon">✜</span>Cure Plague<span class="cost">50</span></button>
+  </div>
+
+  <div class="god-section">
+    <h3>Will</h3>
+    <button class="god-btn" data-power="guard"><span class="icon">⚔</span>Conscript Guard<span class="cost">20</span></button>
+    <button class="god-btn" data-power="migrant"><span class="icon">✈</span>Summon Traveler<span class="cost">10</span></button>
+  </div>
+</aside>
+
+<!-- STAGE -->
+<div id="stage">
+  <svg class="corner tl" viewBox="0 0 60 60"><path d="M5 55 L5 5 L55 5 M5 5 Q22 22 5 40 M5 5 Q22 5 40 22" stroke="#1c1208" stroke-width="1.5" fill="none"/><circle cx="5" cy="5" r="3" fill="#1c1208"/></svg>
+  <svg class="corner tr" viewBox="0 0 60 60"><path d="M5 55 L5 5 L55 5 M5 5 Q22 22 5 40 M5 5 Q22 5 40 22" stroke="#1c1208" stroke-width="1.5" fill="none"/><circle cx="5" cy="5" r="3" fill="#1c1208"/></svg>
+  <svg class="corner bl" viewBox="0 0 60 60"><path d="M5 55 L5 5 L55 5 M5 5 Q22 22 5 40 M5 5 Q22 5 40 22" stroke="#1c1208" stroke-width="1.5" fill="none"/><circle cx="5" cy="5" r="3" fill="#1c1208"/></svg>
+  <svg class="corner br" viewBox="0 0 60 60"><path d="M5 55 L5 5 L55 5 M5 5 Q22 22 5 40 M5 5 Q22 5 40 22" stroke="#1c1208" stroke-width="1.5" fill="none"/><circle cx="5" cy="5" r="3" fill="#1c1208"/></svg>
+
+  <div id="title-bar">
+    <h1>The Chronicle of Aldwyn</h1>
+    <div class="sub">hover for names · click to inspect · drag to move · powers from the left</div>
+  </div>
+
+  <div id="clock">Day 1 · Dawn</div>
+  <div id="weather-badge">Clear</div>
+  <div id="threat-warn">⚔ Bandits ⚔</div>
+
+  <canvas id="world"></canvas>
+  <div id="blood-moon-overlay"></div>
+  <div id="eclipse-overlay"></div>
+  <div id="vignette"></div>
+  <div id="weather-overlay"></div>
+  <div id="tooltip"></div>
+
+  <div id="transcript">
+    <div class="head">
+      <span>— A Conversation Overheard —</span>
+      <span class="close" id="transcript-close">✕</span>
+    </div>
+    <div id="transcript-body"></div>
+  </div>
+</div>
+
+<!-- INFO PANEL -->
+<aside id="panel">
+  <div class="section">
+    <h2>The Realm</h2>
+    <div class="stats" id="realm-stats"></div>
+  </div>
+
+  <div class="section">
+    <h2>Controls</h2>
+    <div id="controls">
+      <button class="ctrl" data-speed="0">Pause</button>
+      <button class="ctrl active" data-speed="1">1×</button>
+      <button class="ctrl" data-speed="3">3×</button>
+      <button class="ctrl" data-speed="8">8×</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Subject of Interest</h2>
+    <div id="selected"><em>None selected. Click a wanderer upon the map.</em></div>
+  </div>
+
+  <div class="section">
+    <h2>The Chronicle</h2>
+    <div id="log"></div>
+  </div>
+</aside>
+
+<script>
+/* ============================================================
+   THE CHRONICLE OF ALDWYN v3 — Tyler
+   SECTIONS:
+     1.  CONSTANTS & CANVAS
+     2.  TIME
+     3.  MAP, TILES, BUILDINGS, WALLS
+     4.  ECONOMY
+     5.  SKILLS
+     6.  VILLAGER MODEL (incl. FOREIGNERS)
+     7.  ORIGINS / CULTURES
+     8.  DIALOGUE GENERATION
+     9.  WORLD INIT
+     10. PATHFINDING
+     11. AI DECISIONS
+     12. UPDATE LOOP
+     13. JOBS
+     14. CONVERSATIONS
+     15. FIGHTS & RIVALRIES
+     16. COURTSHIP
+     17. DEATH
+     18. ELECTIONS
+     19. THREATS (wolves, bandits)
+     20. MIGRATION
+     21. WEATHER & PLAGUE
+     22. GOD POWERS
+     23. RENDERING
+     24. HUD/TOOLTIP/TRANSCRIPT
+     25. LOG
+     26. INPUT (incl. drag & god targeting)
+     27. MAIN LOOP
+     28. BOOT
+   ============================================================ */
+
+/* ------- SECTION 1: CONSTANTS & CANVAS ------- */
+const canvas = document.getElementById('world');
+const ctx = canvas.getContext('2d');
+const stage = document.getElementById('stage');
+
+let W = 0, H = 0;
+function resize() {
+  const r = stage.getBoundingClientRect();
+  W = canvas.width = Math.floor(r.width);
+  H = canvas.height = Math.floor(r.height);
+}
+window.addEventListener('resize', () => { resize(); fitCamera(); });
+resize();
+
+const TILE = 32;
+const GRID_W = 38;
+const GRID_H = 24;
+const WORLD_W = GRID_W * TILE;
+const WORLD_H = GRID_H * TILE;
+
+const cam = { x: 0, y: 0, scale: 1 };
+function fitCamera() {
+  cam.scale = Math.min(W / WORLD_W, H / WORLD_H);
+  cam.x = (W - WORLD_W * cam.scale) / 2;
+  cam.y = (H - WORLD_H * cam.scale) / 2;
+}
+fitCamera();
+
+/* ------- SECTION 2: TIME ------- */
+const TIME = {
+  ticksPerDay: 1200,
+  tick: 0,
+  day: 1,
+  speed: 1,
+  paused: false,
+  _lastElection: 0,
+  _lastMigrant: 0,
+};
+function hourOfDay() { return (TIME.tick % TIME.ticksPerDay) / TIME.ticksPerDay * 24; }
+function phaseOfDay() {
+  const h = hourOfDay();
+  if (h < 5)  return 'Night';
+  if (h < 7)  return 'Dawn';
+  if (h < 11) return 'Morning';
+  if (h < 14) return 'Noon';
+  if (h < 18) return 'Afternoon';
+  if (h < 20) return 'Dusk';
+  return 'Night';
+}
+function isNight() { const h = hourOfDay(); return h < 6 || h >= 20; }
+
+/* ------- SECTION 3: MAP & BUILDINGS ------- */
+// Tile types: 0 grass, 1 path, 2 water, 3 forest, 4 field, 5 plaza, 6 garden, 7 dirt, 8 sand
+const map = [];
+const tileVariant = []; // per-tile rng for textures
+for (let y = 0; y < GRID_H; y++) {
+  const row = []; const vrow = [];
+  for (let x = 0; x < GRID_W; x++) {
+    let t = 0;
+    if (x > GRID_W - 4 && (y + Math.sin(x*0.5)*1) % 7 < 3) t = 2;
+    if (x < 7 && y < 7 && Math.random() < 0.55) t = 3;
+    if (y > GRID_H - 5 && x > 10 && x < 24 && Math.random() < 0.4) t = 3;
+    if (x > 8 && x < 15 && y > 15 && y < 20) t = 4;
+    row.push(t);
+    vrow.push(Math.random());
+  }
+  map.push(row);
+  tileVariant.push(vrow);
+}
+// Roads
+for (let x = 6; x < 32; x++) map[11][x] = 1;
+for (let y = 5; y < 19; y++) map[y][17] = 1;
+// Plaza
+for (let y = 12; y <= 14; y++) for (let x = 16; x <= 19; x++) map[y][x] = 5;
+// Garden
+for (let y = 9; y <= 10; y++) for (let x = 13; x <= 15; x++) map[y][x] = 6;
+// Dirt rings around buildings done after building placement
+
+const BUILDINGS = [
+  { type: 'mayor',    name: 'Town Hall',  x: 14, y: 6,  w: 4, h: 3, color: '#8b1e1e' },
+  { type: 'market',   name: 'Market',     x: 20, y: 10, w: 4, h: 3, color: '#b8860b' },
+  { type: 'bakery',   name: 'Bakery',     x: 8,  y: 8,  w: 3, h: 2, color: '#a05a2c' },
+  { type: 'smithy',   name: 'Smithy',     x: 22, y: 6,  w: 3, h: 2, color: '#5a5a5a' },
+  { type: 'school',   name: 'Cloister',   x: 5,  y: 14, w: 3, h: 3, color: '#5a4a8a' },
+  { type: 'tavern',   name: 'Tavern',     x: 26, y: 11, w: 3, h: 2, color: '#7a3a1a' },
+  { type: 'farm',     name: 'Granary',    x: 10, y: 19, w: 3, h: 2, color: '#6b8a3a' },
+  { type: 'chapel',   name: 'Chapel',     x: 31, y: 6,  w: 3, h: 3, color: '#6a6a8a' },
+  { type: 'barracks', name: 'Barracks',   x: 22, y: 14, w: 3, h: 2, color: '#3a3a3a' },
+  { type: 'tower',    name: 'Watchtower', x: 3,  y: 3,  w: 2, h: 2, color: '#5a5a5a' },
+  { type: 'tower',    name: 'Watchtower', x: 33, y: 19, w: 2, h: 2, color: '#5a5a5a' },
+  { type: 'house', subClass: 'wealthy', name: 'Manor',     x: 27, y: 4,  w: 3, h: 3, color: '#8b1e1e' },
+  { type: 'house', subClass: 'middle',  name: 'Townhouse', x: 8,  y: 4,  w: 2, h: 2, color: '#4f6d8a' },
+  { type: 'house', subClass: 'middle',  name: 'Townhouse', x: 11, y: 4,  w: 2, h: 2, color: '#4f6d8a' },
+  { type: 'house', subClass: 'poor',    name: 'Hovel',     x: 5,  y: 18, w: 2, h: 2, color: '#6b5841' },
+  { type: 'house', subClass: 'poor',    name: 'Hovel',     x: 27, y: 17, w: 2, h: 2, color: '#6b5841' },
+  { type: 'house', subClass: 'poor',    name: 'Hovel',     x: 31, y: 14, w: 2, h: 2, color: '#6b5841' },
+];
+
+// Palisade walls (defense): segments of fence
+// Type 'wall' will be drawn but is BLOCKED for villagers (passable[y][x]=false)
+const WALLS = [];
+// north wall, south wall with gaps for gates
+for (let x = 2; x <= 35; x++) {
+  if (x === 16 || x === 17 || x === 18) continue; // north gate
+  WALLS.push({ x, y: 2 });
+  if (x === 16 || x === 17) continue;
+  WALLS.push({ x, y: 22 });
+}
+// west wall with gate
+for (let y = 2; y <= 22; y++) {
+  if (y === 11 || y === 12) continue; // west gate
+  WALLS.push({ x: 1, y });
+  if (y === 11) continue;
+  WALLS.push({ x: 36, y });
+}
+
+function buildingCenter(b) { return { x: (b.x + b.w/2) * TILE, y: (b.y + b.h/2) * TILE }; }
+function buildingDoor(b) { return { x: (b.x + b.w/2) * TILE, y: (b.y + b.h) * TILE + 4 }; }
+function findBuilding(type) { return BUILDINGS.find(b => b.type === type); }
+function findBuildings(type) { return BUILDINGS.filter(b => b.type === type); }
+function houseForClass(cls) {
+  const houses = BUILDINGS.filter(b => b.type === 'house' && b.subClass === cls);
+  return houses[Math.floor(Math.random() * houses.length)];
+}
+
+// Add dirt rings around buildings for visual flair
+for (const b of BUILDINGS) {
+  for (let y = b.y - 1; y <= b.y + b.h; y++) {
+    for (let x = b.x - 1; x <= b.x + b.w + 0; x++) {
+      if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) continue;
+      if (map[y][x] === 0 && Math.random() < 0.6) map[y][x] = 7;
+    }
+  }
+}
+
+// Passability grid
+const passable = [];
+for (let y = 0; y < GRID_H; y++) {
+  const row = [];
+  for (let x = 0; x < GRID_W; x++) row.push(map[y][x] !== 2);
+  passable.push(row);
+}
+// Block building interiors
+for (const b of BUILDINGS) {
+  for (let y = b.y; y < b.y + b.h; y++)
+    for (let x = b.x; x < b.x + b.w; x++)
+      passable[y][x] = false;
+}
+// Block walls
+for (const w of WALLS) passable[w.y][w.x] = false;
+
+// Fire tiles (divine fire spreads)
+const fires = []; // {x, y, ttl, intensity}
+function isOnFire(gx, gy) { return fires.some(f => f.x === gx && f.y === gy); }
+
+/* ------- SECTION 4: ECONOMY ------- */
+const ECON = {
+  treasury: 250,
+  granaryFood: 100,
+  marketBread: 30,
+  marketAle: 15,
+  basePrice: { bread: 3, ale: 5, tool: 12 },
+  totalTrades: 0,
+};
+function marketPrice(item) {
+  const base = ECON.basePrice[item] ?? 5;
+  const stock = item === 'bread' ? ECON.marketBread : item === 'ale' ? ECON.marketAle : 10;
+  const factor = stock < 5 ? 2.0 : stock < 15 ? 1.3 : stock > 40 ? 0.7 : 1.0;
+  // Drought doubles bread prices
+  const droughtMod = WEATHER.kind === 'drought' ? 1.5 : 1.0;
+  return Math.max(1, Math.round(base * factor * droughtMod));
+}
+
+/* ------- SECTION 5: SKILLS ------- */
+const SKILL_LIST = ['literacy','combat','crafting','farming','charisma','leadership','baking'];
+const SPECIALIZATIONS = [
+  { skill: 'literacy', min: 60, title: 'Scholar' },
+  { skill: 'literacy', min: 85, title: 'Sage' },
+  { skill: 'combat',   min: 60, title: 'Veteran' },
+  { skill: 'combat',   min: 85, title: 'Captain of the Guard' },
+  { skill: 'crafting', min: 60, title: 'Master Smith' },
+  { skill: 'crafting', min: 85, title: 'Artisan' },
+  { skill: 'farming',  min: 60, title: 'Master Farmer' },
+  { skill: 'charisma', min: 60, title: 'Silver-Tongue' },
+  { skill: 'charisma', min: 85, title: 'Charmer' },
+  { skill: 'leadership', min: 70, title: 'Statesman' },
+  { skill: 'baking',   min: 60, title: 'Master Baker' },
+];
+function topSpecialization(v) {
+  let best = null;
+  for (const s of SPECIALIZATIONS) {
+    if ((v.skills[s.skill] || 0) >= s.min) {
+      if (!best || s.min > best.min) best = s;
+    }
+  }
+  return best ? best.title : null;
+}
+function gainSkill(v, skill, amt) {
+  if (!(skill in v.skills)) v.skills[skill] = 0;
+  v.skills[skill] = Math.min(100, v.skills[skill] + amt);
+  const newSpec = topSpecialization(v);
+  if (newSpec && v._lastSpec !== newSpec) {
+    v._lastSpec = newSpec;
+    log(`${v.name} is now hailed as a ${newSpec}.`, 'vote');
+  }
+}
+
+/* ------- SECTION 6: VILLAGER MODEL ------- */
+const FIRST_NAMES = [
+  'Aldric','Bram','Cedric','Doran','Eadric','Faelan','Gareth','Harold','Ivor','Jorund',
+  'Kael','Lothar','Mira','Nia','Orla','Petra','Quill','Rhiannon','Saewyn','Tilda',
+  'Ulric','Vesna','Wystan','Yseult','Edric','Brunhild','Godfrey','Hilda','Isolde','Roland'
+];
+const LAST_NAMES = [
+  'of the Hollow','Ironhand','Blackmoor','Greenfield','Brookwater','Stoneholm',
+  'Ravenshaw','Marsh','Ashford','Thornwell','Vale','Whitlow','Reed','Hartley'
+];
+
+let nextId = 1;
+const villagers = [];
+const enemies = [];
+const corpses = [];
+
+function classOnBirth() {
+  const r = Math.random();
+  if (r < 0.55) return 'poor';
+  if (r < 0.90) return 'middle';
+  return 'wealthy';
+}
+function jobForClassAndAge(cls, age) {
+  if (age < 14) return 'child';
+  if (cls === 'wealthy') return Math.random() < 0.5 ? 'noble' : 'merchant';
+  if (cls === 'middle') {
+    const choices = ['baker','blacksmith','merchant','guard','farmer'];
+    return choices[Math.floor(Math.random()*choices.length)];
+  }
+  const choices = ['farmer','farmer','guard','baker'];
+  return choices[Math.floor(Math.random()*choices.length)];
+}
+
+function makeVillager(opts = {}) {
+  const cls = opts.cls ?? classOnBirth();
+  const age = opts.age ?? (18 + Math.floor(Math.random()*30));
+  const job = opts.job ?? jobForClassAndAge(cls, age);
+  const home = opts.home ?? houseForClass(cls);
+  const c = buildingDoor(home);
+  const origin = opts.origin || ORIGINS.aldwyn; // local by default
+
+  const startGold = cls === 'wealthy' ? 80 + Math.random()*120 :
+                    cls === 'middle'  ? 25 + Math.random()*40  :
+                    5 + Math.random()*15;
+
+  const skills = {
+    literacy:   cls === 'wealthy' ? 20 + Math.random()*20 : cls === 'middle' ? 5 + Math.random()*10 : Math.random()*3,
+    combat:     Math.random()*8,
+    crafting:   Math.random()*8,
+    farming:    cls === 'poor' ? 10 + Math.random()*15 : Math.random()*8,
+    charisma:   Math.random()*15 + (cls === 'wealthy' ? 10 : 0),
+    leadership: cls === 'wealthy' ? 10 + Math.random()*10 : Math.random()*5,
+    baking:     Math.random()*5,
+  };
+  // Origin skill bonuses
+  for (const [sk, bonus] of Object.entries(origin.bonuses)) {
+    skills[sk] = (skills[sk] || 0) + bonus;
+  }
+
+  // Use origin's first/last names for foreigners
+  const firstPool = origin.firstNames || FIRST_NAMES;
+  const lastPool = origin.lastNames || LAST_NAMES;
+  const name = firstPool[Math.floor(Math.random()*firstPool.length)] + ' ' +
+               lastPool[Math.floor(Math.random()*lastPool.length)];
+
+  return {
+    id: nextId++,
+    name, sex: Math.random() < 0.5 ? 'M' : 'F',
+    age, cls, job, home,
+    x: c.x, y: c.y,
+    path: [], target: null,
+    state: 'idle', stateTimer: 0,
+    inside: null,
+    hunger: 30 + Math.random()*30,
+    energy: 70 + Math.random()*30,
+    social: 50,
+    drunkenness: 0,
+    gold: startGold,
+    isMayor: false,
+    partnerId: null,
+    pregnantUntil: null,
+    speed: 0.6 + Math.random()*0.3,
+    color: origin.color || (cls === 'wealthy' ? '#c98a2b' : cls === 'middle' ? '#3a5a7a' : '#5a4a30'),
+    accentColor: origin.accent || null,
+    hp: 100,
+    skills,
+    relations: {},
+    chatPartner: null,
+    chatUntil: 0,
+    chatHistory: [],   // recent lines for transcripts
+    fightTarget: null,
+    fallingInWater: false,
+    burning: false,
+    sick: false,
+    sickUntil: 0,
+    origin,
+    isForeign: origin.id !== 'aldwyn',
+    yearsInAldwyn: origin.id === 'aldwyn' ? 999 : 0,
+    _lastSpec: null,
+    _announced: false,
+  };
+}
+
+/* ------- SECTION 7: ORIGINS / CULTURES ------- */
+const ORIGINS = {
+  aldwyn: {
+    id: 'aldwyn', name: 'Aldwyn', color: null, accent: null,
+    bonuses: {}, dialect: 'common',
+    firstNames: null, lastNames: null,
+  },
+  thornhaven: {
+    id: 'thornhaven', name: 'Thornhaven',
+    color: '#3a5a3a', accent: '#9eb56a',
+    bonuses: { farming: 15, crafting: 5 },
+    dialect: 'common',
+    firstNames: ['Bryn','Cailan','Daria','Ewan','Fionn','Gwen','Hale','Isla','Jora'],
+    lastNames: ['Thornwood','Bramble','Hedgerow','Greenleaf','of Thornhaven'],
+    desc: 'a hardy forest folk',
+  },
+  marshford: {
+    id: 'marshford', name: 'Marshford',
+    color: '#3a4a6a', accent: '#5d86a8',
+    bonuses: { farming: 8, charisma: 10 },
+    dialect: 'salty',
+    firstNames: ['Mor','Cael','Tava','Bryl','Senn','Wenn','Hesk','Marsi','Drev'],
+    lastNames: ['Reedwater','Bog','Rushmere','Eelfen','of Marshford'],
+    desc: 'the marsh fishers',
+  },
+  eastreach: {
+    id: 'eastreach', name: 'Eastreach',
+    color: '#7a4a2a', accent: '#e8c547',
+    bonuses: { combat: 12, leadership: 5 },
+    dialect: 'formal',
+    firstNames: ['Aluraj','Kasim','Layla','Sori','Tarek','Vey','Yasna','Zoran'],
+    lastNames: ['al-Saren','of the East','Sundaril','Goldcaravan','Cinderan'],
+    desc: 'merchants of the spice roads',
+  },
+  greycross: {
+    id: 'greycross', name: 'Greycross',
+    color: '#4a4a5a', accent: '#a0a0a8',
+    bonuses: { literacy: 15, charisma: 5 },
+    dialect: 'scholarly',
+    firstNames: ['Ansel','Brother Caen','Eldred','Magdela','Sister Pim','Thiel','Vesp'],
+    lastNames: ['of the Cloister','Greypage','Inkfinger','of Greycross'],
+    desc: 'monks of the grey order',
+  },
+  northlands: {
+    id: 'northlands', name: 'the Northlands',
+    color: '#5a5a8a', accent: '#c0c0e0',
+    bonuses: { combat: 18, crafting: 8 },
+    dialect: 'gruff',
+    firstNames: ['Bjorn','Halla','Ingvar','Sigrun','Torsten','Astrid','Ragnar','Una','Eivor'],
+    lastNames: ['Frostbeard','Snowfell','Ice-eye','Wolfskin','of the Northlands'],
+    desc: 'warriors from the frozen north',
+  },
+};
+const FOREIGN_ORIGINS = ['thornhaven','marshford','eastreach','greycross','northlands'];
+
+/* ------- SECTION 8: DIALOGUE GENERATION ------- */
+const DIALOGUE_TEMPLATES = {
+  common: {
+    greeting: ['Good morrow, {name}.', 'Well met, {name}.', 'Hail, {name}.', 'A fair day, friend.'],
+    smalltalk: ['The grain looks thin this year.', 'Did you hear of the goings-on at the chapel?', 'Mind the road, there are wolves about.', 'My back aches from the labour.', 'Have you tried the new bread?'],
+    weather_rain: ['This rain will drown the wheat.', 'A wet day, by the saints.'],
+    weather_snow: ['The snow comes early this year.', 'My fingers go numb in this cold.'],
+    weather_storm: ['That thunder shook my house!', 'God is angry today, I think.'],
+    weather_fog: ['Can\'t see ten paces in this murk.', 'Hold close, the fog plays tricks.'],
+    weather_drought: ['The wells run dry. The fields are dust.', 'Pray for rain, friend, pray for rain.'],
+    weather_eclipse: ['The sun is eaten! What omen is this?', 'Heaven hides its face. We are doomed.'],
+    weather_bloodmoon: ['The moon weeps blood tonight.', 'I dare not sleep beneath such a moon.'],
+    foreign_distrust: ['I don\'t care for these {origin} folk.', 'They speak strangely, those {origin}.', 'My grandmother warned me of {origin} ways.'],
+    foreign_curious: ['Tell me of {origin}, traveler.', 'How fare the roads from {origin}?', 'Are the women fair in {origin}?'],
+    farewell: ['Fare thee well.', 'Until next, friend.', 'God keep you.', 'Mind yourself out there.'],
+    plague: ['Cover thy face — the sickness spreads.', 'My cousin coughs blood. It cannot be long.'],
+    raid_after: ['Did you see the bandit fall? A good blow!', 'I shook for hours after the raid.'],
+    market: ['The price of bread is robbery!', 'Six pieces for a loaf? Madness.', 'The miller grows fat while we starve.'],
+  },
+  salty: {
+    greeting: ['Aye there, {name}.', 'What ho, {name}!', 'Heyup.', 'Ho there, friend.'],
+    smalltalk: ['Tide\'s comin\' in, can feel it in me knee.', 'Fish ran scarce this week, mind ya.', 'Reckon I\'ll catch nothin\' \'till the moon turns.'],
+    farewell: ['Calm seas to ya.', 'Mind the bog.', 'Aye, fair winds.'],
+  },
+  formal: {
+    greeting: ['Most honored {name}, I greet thee.', 'Peace upon you, esteemed {name}.', 'May fortune favor you, {name}.'],
+    smalltalk: ['In Eastreach, we say: a long road yields the best wisdom.', 'I miss the spice markets of my homeland.', 'The cold here cuts to the bone.'],
+    farewell: ['Until our paths cross anew.', 'May the road rise to meet you.'],
+  },
+  scholarly: {
+    greeting: ['Hail and well met, {name}.', 'A blessing upon thee, brother/sister.', 'In nomine Dei, {name}.'],
+    smalltalk: ['I have been copying the Psalms.', 'Have you considered the nature of providence?', 'The library at Greycross holds 400 books, you know.'],
+    farewell: ['Pax tecum.', 'Walk with the saints.'],
+  },
+  gruff: {
+    greeting: ['{name}.', 'You.', 'Hm. {name}.'],
+    smalltalk: ['In the north, this would be summer.', 'Your ale is weak. Your bread weaker.', 'I miss the snows of home.'],
+    farewell: ['Hm.', 'Go, then.', 'Until.'],
+  },
+};
+function lineFromTemplate(speaker, kind, partner = null) {
+  const dialect = (speaker.origin && speaker.origin.dialect) || 'common';
+  const pool = DIALOGUE_TEMPLATES[dialect]?.[kind] || DIALOGUE_TEMPLATES.common[kind] || ['…'];
+  let line = pool[Math.floor(Math.random()*pool.length)];
+  if (partner) line = line.replace('{name}', partner.name.split(' ')[0]);
+  if (partner && partner.origin) line = line.replace('{origin}', partner.origin.name);
+  return line;
+}
+function pickDialogueKind(speaker, partner) {
+  // Weighted by world state
+  const opts = [];
+  // Weather lines
+  if (WEATHER.kind === 'rain') opts.push('weather_rain','weather_rain');
+  if (WEATHER.kind === 'snow') opts.push('weather_snow','weather_snow');
+  if (WEATHER.kind === 'storm') opts.push('weather_storm','weather_storm');
+  if (WEATHER.kind === 'fog') opts.push('weather_fog');
+  if (WEATHER.kind === 'drought') opts.push('weather_drought','weather_drought');
+  if (CELESTIAL.eclipse) opts.push('weather_eclipse','weather_eclipse','weather_eclipse');
+  if (CELESTIAL.bloodmoon) opts.push('weather_bloodmoon','weather_bloodmoon');
+  if (PLAGUE.active) opts.push('plague','plague');
+  // Foreign reaction
+  if (partner.isForeign && !speaker.isForeign) {
+    const trust = speaker.relations[partner.id] || 0;
+    opts.push(trust < 0 ? 'foreign_distrust' : 'foreign_curious');
+  }
+  if (speaker.hunger > 60) opts.push('market');
+  // Defaults
+  opts.push('smalltalk','smalltalk','smalltalk');
+  return opts[Math.floor(Math.random()*opts.length)];
+}
+
+/* ------- SECTION 9: WORLD INIT ------- */
+function seedVillage() {
+  for (let i = 0; i < 4; i++) villagers.push(makeVillager({ cls: 'poor' }));
+  for (let i = 0; i < 4; i++) villagers.push(makeVillager({ cls: 'middle' }));
+  for (let i = 0; i < 2; i++) villagers.push(makeVillager({ cls: 'wealthy' }));
+  for (let i = 0; i < 3; i++) {
+    villagers.push(makeVillager({ age: 4 + Math.floor(Math.random()*8), cls: Math.random()<0.7 ? 'poor':'middle' }));
+  }
+  const candidates = villagers.filter(v => v.age > 25 && v.cls !== 'poor');
+  const m = candidates[Math.floor(Math.random()*candidates.length)] || villagers[0];
+  m.isMayor = true; m.job = 'mayor';
+  gainSkill(m, 'leadership', 20);
+  log(`${m.name} is acclaimed Mayor of Aldwyn.`, 'vote');
+}
+
+/* ------- SECTION 10: PATHFINDING ------- */
+function worldToGrid(x, y) {
+  return { gx: Math.max(0, Math.min(GRID_W-1, Math.floor(x / TILE))),
+           gy: Math.max(0, Math.min(GRID_H-1, Math.floor(y / TILE))) };
+}
+function gridToWorld(gx, gy) { return { x: gx * TILE + TILE/2, y: gy * TILE + TILE/2 }; }
+
+function aStar(sx, sy, tx, ty, allowEnd = false) {
+  if (sx === tx && sy === ty) return [];
+  const key = (x, y) => y * GRID_W + x;
+  const open = new Map();
+  const cameFrom = new Map();
+  const gScore = new Map();
+  const fScore = new Map();
+  const startKey = key(sx, sy);
+  gScore.set(startKey, 0);
+  fScore.set(startKey, Math.abs(tx-sx) + Math.abs(ty-sy));
+  open.set(startKey, { x: sx, y: sy, f: fScore.get(startKey) });
+
+  let iters = 0;
+  while (open.size && iters++ < 800) {
+    let bestKey = null, bestF = Infinity;
+    for (const [k, n] of open) if (n.f < bestF) { bestF = n.f; bestKey = k; }
+    const cur = open.get(bestKey);
+    open.delete(bestKey);
+    if (cur.x === tx && cur.y === ty) {
+      const path = [];
+      let k = key(cur.x, cur.y);
+      while (cameFrom.has(k)) {
+        const [px, py] = cameFrom.get(k);
+        path.unshift(gridToWorld(cur.x, cur.y));
+        cur.x = px; cur.y = py;
+        k = key(px, py);
+      }
+      return path;
+    }
+    const neighbors = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (const [dx, dy] of neighbors) {
+      const nx = cur.x + dx, ny = cur.y + dy;
+      if (nx < 0 || ny < 0 || nx >= GRID_W || ny >= GRID_H) continue;
+      const isTarget = (nx === tx && ny === ty);
+      if (!passable[ny][nx] && !(isTarget && allowEnd)) continue;
+      const stepCost = map[ny][nx] === 3 ? 2 : 1;
+      const tentative = (gScore.get(key(cur.x, cur.y)) ?? Infinity) + stepCost;
+      const nk = key(nx, ny);
+      if (tentative < (gScore.get(nk) ?? Infinity)) {
+        cameFrom.set(nk, [cur.x, cur.y]);
+        gScore.set(nk, tentative);
+        const f = tentative + Math.abs(tx-nx) + Math.abs(ty-ny);
+        fScore.set(nk, f);
+        if (!open.has(nk)) open.set(nk, { x: nx, y: ny, f });
+        else open.get(nk).f = f;
+      }
+    }
+  }
+  return null;
+}
+
+function pathTo(v, tx, ty, allowEnd = false) {
+  const s = worldToGrid(v.x, v.y);
+  const t = worldToGrid(tx, ty);
+  if (!passable[s.gy][s.gx]) {
+    const adj = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (const [dx, dy] of adj) {
+      const nx = s.gx + dx, ny = s.gy + dy;
+      if (nx>=0&&ny>=0&&nx<GRID_W&&ny<GRID_H&&passable[ny][nx]) { s.gx = nx; s.gy = ny; break; }
+    }
+  }
+  const p = aStar(s.gx, s.gy, t.gx, t.gy, allowEnd);
+  if (!p) v.path = [{ x: tx, y: ty }];
+  else { p.push({ x: tx, y: ty }); v.path = p; }
+}
+function pathToBuilding(v, b) {
+  if (!b) return;
+  const door = buildingDoor(b);
+  pathTo(v, door.x, door.y, true);
+  v._destBuilding = b;
+}
+function followPath(v, dt) {
+  if (!v.path || v.path.length === 0) return true;
+  const wp = v.path[0];
+  const dx = wp.x - v.x, dy = wp.y - v.y;
+  const d = Math.hypot(dx, dy);
+  if (d < 3) { v.path.shift(); return v.path.length === 0; }
+  const g = worldToGrid(v.x, v.y);
+  let terrainMod = 1.0;
+  if (map[g.gy] && map[g.gy][g.gx] === 3) terrainMod = 0.6;
+  if (WEATHER.kind === 'snow') terrainMod *= 0.75;
+  if (WEATHER.kind === 'storm') terrainMod *= 0.85;
+  const drunkMod = v.drunkenness > 60 ? 0.6 : 1.0;
+  const sickMod = v.sick ? 0.7 : 1.0;
+  const sp = v.speed * (60 * dt) * terrainMod * drunkMod * sickMod;
+  const nx = v.x + (dx/d) * sp;
+  const ny = v.y + (dy/d) * sp;
+  // COLLISION CHECK: don't enter blocked tiles (except buildings via doors handled by path)
+  const ng = worldToGrid(nx, ny);
+  if (passable[ng.gy] && passable[ng.gy][ng.gx]) {
+    v.x = nx; v.y = ny;
+  } else {
+    // Try axis-aligned slide
+    const ngx = worldToGrid(nx, v.y);
+    if (passable[ngx.gy] && passable[ngx.gy][ngx.gx]) v.x = nx;
+    else {
+      const ngy = worldToGrid(v.x, ny);
+      if (passable[ngy.gy] && passable[ngy.gy][ngy.gx]) v.y = ny;
+      else { v.path.shift(); }
+    }
+  }
+  return false;
+}
+
+/* ------- SECTION 11: AI DECISIONS ------- */
+function jobBuilding(v) {
+  switch (v.job) {
+    case 'baker':      return findBuilding('bakery');
+    case 'blacksmith': return findBuilding('smithy');
+    case 'merchant':   return findBuilding('market');
+    case 'farmer':     return findBuilding('farm');
+    case 'guard':      return findBuilding('barracks');
+    case 'noble':      return findBuilding('mayor');
+    case 'mayor':      return findBuilding('mayor');
+    case 'child':      return findBuilding('school');
+  }
+  return null;
+}
+function decideAction(v) {
+  const h = hourOfDay();
+
+  // Threats
+  if (enemies.length > 0) {
+    const ne = nearestEnemy(v);
+    if (ne) {
+      const d = Math.hypot(ne.x - v.x, ne.y - v.y);
+      if (v.job === 'guard' && d < 280) { v.state = 'fighting'; v.path = []; return; }
+      if (d < 180 && v.job !== 'guard') {
+        v.state = 'fleeing';
+        pathToBuilding(v, v.home || findBuilding('mayor'));
+        return;
+      }
+    }
+  }
+
+  if (v.hunger > 75) { pathToBuilding(v, findBuilding('market')); v.state = 'eating'; return; }
+
+  if (isNight() || WEATHER.kind === 'storm') {
+    pathToBuilding(v, v.home);
+    v.state = 'sleeping';
+    return;
+  }
+  if (v.energy < 25) { pathToBuilding(v, v.home); v.state = 'sleeping'; return; }
+
+  if (h > 7 && h < 18) {
+    const b = jobBuilding(v);
+    if (b) { pathToBuilding(v, b); v.state = 'working'; return; }
+  }
+
+  if (v.social < 40 || Math.random() < 0.5) {
+    const choice = Math.random();
+    if (choice < 0.4) { pathTo(v, 17.5 * TILE, 13 * TILE); v.state = 'socializing'; }
+    else if (choice < 0.75) { pathToBuilding(v, findBuilding('tavern')); v.state = 'drinking'; }
+    else { pathToBuilding(v, findBuilding('chapel')); v.state = 'praying'; }
+    return;
+  }
+  pathToBuilding(v, findBuilding('market'));
+  v.state = 'idle';
+}
+
+/* ------- SECTION 12: UPDATE LOOP ------- */
+function updateVillager(v, dt) {
+  if (v.hp <= 0) return;
+  if (v.fallingInWater) {
+    v.hp -= dt * 30;
+    if (v.hp <= 0) { killVillager(v, 'drowned in the river'); return; }
+    return;
+  }
+  if (v.burning) {
+    v.hp -= dt * 20;
+    if (v.hp <= 0) { killVillager(v, 'was consumed by divine fire'); return; }
+  }
+  v.hunger += dt * 0.7;
+  v.energy -= dt * 0.4;
+  v.social -= dt * 0.2;
+  v.drunkenness = Math.max(0, v.drunkenness - dt * 1.5);
+
+  // Sickness damage
+  if (v.sick) {
+    v.hp -= dt * 3;
+    v.hunger += dt * 0.4;
+    if (TIME.tick > v.sickUntil) {
+      // 60% chance to recover, 40% to die if severe
+      if (Math.random() < 0.7) { v.sick = false; log(`${v.name} recovers from the sickness.`, 'birth'); }
+    }
+    if (v.hp <= 0) { killVillager(v, 'died of the plague'); return; }
+  }
+
+  // Aging
+  if (TIME.tick % (TIME.ticksPerDay * 8) === 0 && v.age < 200) {
+    v.age++;
+    if (v.isForeign) v.yearsInAldwyn++;
+    if (v.age > 70 && Math.random() < (v.age - 70) * 0.01) {
+      killVillager(v, 'died of old age'); return;
+    }
+    if (v.age === 14) {
+      const top = bestSkill(v);
+      v.job = topJobForSkill(top, v.cls);
+      log(`${v.name} comes of age, becoming a ${v.job}.`);
+    }
+  }
+
+  if (v.chatPartner) {
+    if (TIME.tick > v.chatUntil) endChat(v);
+    return;
+  }
+  if (v.fightTarget) { processVillagerFight(v, dt); return; }
+
+  const arrived = !v.path || v.path.length === 0 ? true : followPath(v, dt);
+  if (arrived) handleAtTarget(v, dt);
+
+  maybeStartChat(v);
+  maybeStartFight(v);
+  if (Math.random() < 0.005) decideAction(v);
+
+  if (v.hunger >= 100) {
+    v.hp -= dt * 6;
+    if (v.hp <= 0) killVillager(v, 'perished from hunger');
+  }
+}
+function handleAtTarget(v, dt) {
+  if (v._destBuilding) {
+    const b = v._destBuilding;
+    const c = buildingDoor(b);
+    if (Math.hypot(v.x - c.x, v.y - c.y) < 12) v.inside = b;
+  }
+  switch (v.state) {
+    case 'sleeping':
+      v.energy = Math.min(100, v.energy + dt * 8);
+      if (v.energy > 95 && !isNight() && WEATHER.kind !== 'storm') {
+        v.inside = null; v.state = 'idle'; decideAction(v);
+      }
+      break;
+    case 'eating': {
+      const price = marketPrice('bread');
+      if (ECON.marketBread > 0 && v.gold >= price) {
+        const merchant = villagers.find(o => o.job === 'merchant' && o.inside && o.inside.type === 'market' && o.hp > 0);
+        let finalPrice = price;
+        if (merchant && v.skills.charisma > merchant.skills.charisma) {
+          finalPrice = Math.max(1, price - 1);
+          gainSkill(v, 'charisma', 0.5);
+        } else if (merchant) gainSkill(merchant, 'charisma', 0.3);
+        ECON.marketBread--;
+        v.gold -= finalPrice;
+        ECON.treasury += 1;
+        ECON.totalTrades++;
+        v.hunger = Math.max(0, v.hunger - 55);
+      } else if (ECON.granaryFood > 0 && v.cls === 'poor') {
+        ECON.granaryFood--;
+        v.hunger = Math.max(0, v.hunger - 35);
+      }
+      v.inside = null; v.state = 'idle';
+      break;
+    }
+    case 'working':
+      v.energy -= dt * 0.6;
+      v.stateTimer = (v.stateTimer || 0) + dt;
+      if (v.stateTimer > 2) { v.stateTimer = 0; performJob(v); }
+      if (Math.random() < 0.004) { v.inside = null; decideAction(v); }
+      break;
+    case 'drinking':
+      v.drunkenness = Math.min(100, v.drunkenness + dt * 5);
+      v.social = Math.min(100, v.social + dt * 0.8);
+      if (ECON.marketAle > 0 && v.gold >= ECON.basePrice.ale && Math.random() < dt * 0.5) {
+        ECON.marketAle--; v.gold -= ECON.basePrice.ale; ECON.treasury += 1;
+      }
+      if (v.drunkenness > 80 || Math.random() < 0.005) { v.inside = null; decideAction(v); }
+      break;
+    case 'praying':
+      v.social = Math.min(100, v.social + dt * 0.6);
+      gainSkill(v, 'literacy', dt * 0.5);
+      if (Math.random() < 0.01) { v.inside = null; decideAction(v); }
+      break;
+    case 'socializing':
+      v.social = Math.min(100, v.social + dt * 0.5);
+      if (Math.random() < 0.01) decideAction(v);
+      break;
+    case 'idle':
+      v.social = Math.min(100, v.social + dt * 0.3);
+      if (Math.random() < 0.01) decideAction(v);
+      break;
+    case 'fighting':
+      const e = nearestEnemy(v);
+      if (e) {
+        const d = Math.hypot(e.x - v.x, e.y - v.y);
+        if (d < 26) {
+          const dmg = 12 + v.skills.combat * 0.15;
+          e.hp -= dmg * dt;
+          gainSkill(v, 'combat', dt * 1.5);
+        } else pathTo(v, e.x, e.y);
+      } else { v.state = 'idle'; decideAction(v); }
+      break;
+    case 'fleeing':
+      if (enemies.length === 0) { v.inside = null; v.state = 'idle'; decideAction(v); }
+      break;
+  }
+}
+
+/* ------- SECTION 13: JOBS ------- */
+function bestSkill(v) {
+  let best = 'farming', max = 0;
+  for (const s in v.skills) if (v.skills[s] > max) { max = v.skills[s]; best = s; }
+  return best;
+}
+function topJobForSkill(skill, cls) {
+  const m = { literacy: cls === 'wealthy' ? 'noble' : 'merchant', combat: 'guard',
+              crafting: 'blacksmith', farming: 'farmer', charisma: 'merchant',
+              leadership: cls === 'wealthy' ? 'noble' : 'merchant', baking: 'baker' };
+  return m[skill] || 'farmer';
+}
+function performJob(v) {
+  switch (v.job) {
+    case 'baker':
+      if (ECON.treasury >= 1) {
+        const bonus = 1 + Math.floor(v.skills.baking / 30);
+        ECON.marketBread += 2 + bonus; v.gold += 2; ECON.treasury -= 1;
+        gainSkill(v, 'baking', 1.0);
+      }
+      break;
+    case 'farmer': {
+      let yield_ = 2 + Math.floor(v.skills.farming / 40);
+      if (WEATHER.kind === 'drought') yield_ = Math.max(0, yield_ - 2);
+      if (WEATHER.kind === 'rain' && Math.random() < 0.5) yield_++;
+      ECON.granaryFood += yield_;
+      v.gold += 1;
+      gainSkill(v, 'farming', 0.8);
+      break;
+    }
+    case 'merchant': v.gold += 1 + Math.random() + v.skills.charisma * 0.02; gainSkill(v, 'charisma', 0.5); break;
+    case 'blacksmith': v.gold += 1.5 + v.skills.crafting * 0.02; gainSkill(v, 'crafting', 0.8); break;
+    case 'guard': if (ECON.treasury >= 2) { v.gold += 2; ECON.treasury -= 2; gainSkill(v, 'combat', 0.4); } break;
+    case 'noble': v.gold += 3 + Math.random()*2; gainSkill(v, 'leadership', 0.2); break;
+    case 'mayor': ECON.treasury += 3; v.gold += 1; gainSkill(v, 'leadership', 0.5); break;
+    case 'child':
+      gainSkill(v, 'literacy', 1.2);
+      const apt = ['combat','crafting','farming','charisma','baking'][Math.floor(Math.random()*5)];
+      gainSkill(v, apt, 0.3);
+      v.social = Math.min(100, v.social + 0.5);
+      break;
+  }
+}
+
+/* ------- SECTION 14: CONVERSATIONS ------- */
+const floatingLines = []; // {x,y,text,ttl,maxTtl,color}
+
+function maybeStartChat(v) {
+  if (v.chatPartner || v.fightTarget) return;
+  if (['sleeping','fleeing','fighting','eating'].includes(v.state)) return;
+  if (v.inside) return;
+  if (Math.random() > 0.015) return;
+  for (const o of villagers) {
+    if (o.id === v.id || o.hp <= 0) continue;
+    if (o.chatPartner || o.fightTarget || o.inside) continue;
+    if (['sleeping','fleeing'].includes(o.state)) continue;
+    const d = Math.hypot(o.x - v.x, o.y - v.y);
+    if (d < 32) {
+      const rel = v.relations[o.id] || 0;
+      // Foreigners face initial distrust from locals (-20 starting bias)
+      const xeno = (!v.isForeign && o.isForeign && o.yearsInAldwyn < 3) ? -20 : 0;
+      if (rel + xeno < -40) continue;
+      v.chatPartner = o.id; o.chatPartner = v.id;
+      v.chatUntil = o.chatUntil = TIME.tick + 30;
+      v.path = []; o.path = [];
+      v.chatHistory = []; o.chatHistory = [];
+      // Greeting line from each
+      const greetA = lineFromTemplate(v, 'greeting', o);
+      pushChatLine(v, o, greetA);
+      const kindB = pickDialogueKind(o, v);
+      const lineB = lineFromTemplate(o, kindB, v);
+      pushChatLine(o, v, lineB);
+      // Relationship shift
+      let delta = 2 + Math.random()*3;
+      if (xeno) delta -= 1;
+      v.relations[o.id] = Math.min(100, (v.relations[o.id] || 0) + delta);
+      o.relations[v.id] = Math.min(100, (o.relations[v.id] || 0) + delta);
+      gainSkill(v, 'charisma', 0.3);
+      gainSkill(o, 'charisma', 0.3);
+      return;
+    }
+  }
+}
+function pushChatLine(speaker, partner, text) {
+  speaker.chatHistory.push({ who: speaker.name, text, foreign: speaker.isForeign, at: TIME.tick });
+  partner.chatHistory.push({ who: speaker.name, text, foreign: speaker.isForeign, at: TIME.tick });
+  // Floating bubble
+  floatingLines.push({
+    x: speaker.x, y: speaker.y - 18, owner: speaker.id, text, ttl: 4, maxTtl: 4,
+    color: speaker.isForeign ? '#6a4a8a' : '#1c1208',
+  });
+  if (Math.random() < 0.15) log(`${speaker.name}: "${text}"`, 'talk');
+}
+function endChat(v) {
+  const o = villagers.find(x => x.id === v.chatPartner);
+  if (o) {
+    // Final farewell sometimes
+    if (Math.random() < 0.3) {
+      const fw = lineFromTemplate(o, 'farewell', v);
+      pushChatLine(o, v, fw);
+    }
+    o.chatPartner = null;
+  }
+  v.chatPartner = null;
+}
+function updateFloatingLines(dt) {
+  for (let i = floatingLines.length - 1; i >= 0; i--) {
+    const f = floatingLines[i];
+    f.ttl -= dt;
+    const v = villagers.find(o => o.id === f.owner);
+    if (v) { f.x = v.x; f.y = v.y - 18; }
+    if (f.ttl <= 0) floatingLines.splice(i, 1);
+  }
+}
+
+/* ------- SECTION 15: FIGHTS & RIVALRIES ------- */
+const RIVAL_THRESHOLD = -50;
+function maybeStartFight(v) {
+  if (v.fightTarget || v.chatPartner) return;
+  if (v.inside || ['sleeping','fleeing','fighting'].includes(v.state)) return;
+  if (v.age < 14) return;
+
+  if (v.drunkenness > 70 && Math.random() < 0.01) {
+    for (const o of villagers) {
+      if (o.id === v.id || o.hp <= 0 || o.age < 14) continue;
+      if (Math.hypot(o.x - v.x, o.y - v.y) > 50) continue;
+      pickFight(v, o, 'drunken brawl'); return;
+    }
+  }
+  if (Math.random() < 0.003) {
+    for (const oid in v.relations) {
+      if (v.relations[oid] <= RIVAL_THRESHOLD) {
+        const o = villagers.find(x => x.id === parseInt(oid));
+        if (o && o.hp > 0 && !o.inside && Math.hypot(o.x - v.x, o.y - v.y) < 100) {
+          pickFight(v, o, 'old grudge'); return;
+        }
+      }
+    }
+  }
+  // Xenophobia fight
+  if (Math.random() < 0.001 && !v.isForeign) {
+    for (const o of villagers) {
+      if (o.isForeign && o.yearsInAldwyn < 2 && o.hp > 0 && !o.inside &&
+          Math.hypot(o.x - v.x, o.y - v.y) < 50 && v.drunkenness > 30) {
+        pickFight(v, o, `hatred of foreigners`); return;
+      }
+    }
+  }
+  if (Math.random() < 0.0008 && v.cls !== 'wealthy' && v.social < 30) {
+    for (const o of villagers) {
+      if (o.cls === 'wealthy' && o.hp > 0 && !o.inside && Math.hypot(o.x - v.x, o.y - v.y) < 60) {
+        pickFight(v, o, 'class envy'); return;
+      }
+    }
+  }
+  if ((v.hunger > 80 || v.social < 10) && Math.random() < 0.002) {
+    for (const o of villagers) {
+      if (o.id === v.id || o.hp <= 0 || o.inside) continue;
+      if (Math.hypot(o.x - v.x, o.y - v.y) < 40) { pickFight(v, o, 'a slight'); return; }
+    }
+  }
+}
+function pickFight(a, b, reason) {
+  a.fightTarget = b.id; b.fightTarget = a.id;
+  a.path = []; b.path = [];
+  a.chatPartner = null; b.chatPartner = null;
+  log(`${a.name} sets upon ${b.name} — ${reason}!`, 'fight');
+}
+function processVillagerFight(v, dt) {
+  const o = villagers.find(x => x.id === v.fightTarget);
+  if (!o || o.hp <= 0) { v.fightTarget = null; v.state = 'idle'; return; }
+  const d = Math.hypot(o.x - v.x, o.y - v.y);
+  if (d > 22) {
+    v.x += (o.x - v.x) / d * v.speed * 60 * dt;
+    v.y += (o.y - v.y) / d * v.speed * 60 * dt;
+    return;
+  }
+  const dmg = 4 + v.skills.combat * 0.08 + (v.drunkenness > 50 ? -1 : 0);
+  o.hp -= dmg * dt;
+  gainSkill(v, 'combat', dt * 0.5);
+  v.relations[o.id] = Math.max(-100, (v.relations[o.id] || 0) - 8 * dt);
+  o.relations[v.id] = Math.max(-100, (o.relations[v.id] || 0) - 8 * dt);
+  if (o.hp <= 25 || Math.random() < 0.002) {
+    v.fightTarget = null; o.fightTarget = null;
+    if (o.hp < 5) { o.hp = 5; log(`${v.name} bests ${o.name} in a brutal brawl.`, 'fight'); }
+    v.state = 'idle'; o.state = 'idle';
+  }
+}
+
+/* ------- SECTION 16: COURTSHIP ------- */
+function tryCourtship(v) {
+  if (v.age < 18 || v.age > 50) return;
+  if (v.partnerId) return;
+  if (Math.random() > 0.002) return;
+  const cands = villagers.filter(o =>
+    o.id !== v.id && !o.partnerId && o.age >= 18 && o.age <= 50 &&
+    o.sex !== v.sex && Math.hypot(o.x - v.x, o.y - v.y) < 80 &&
+    o.hp > 0 && (v.relations[o.id] || 0) > -20
+  );
+  if (cands.length === 0) return;
+  const p = cands[0];
+  v.partnerId = p.id; p.partnerId = v.id;
+  log(`${v.name} and ${p.name} are wed beneath the chapel oak.`, 'vote');
+}
+function tryConception(v) {
+  if (v.sex !== 'F' || !v.partnerId || v.pregnantUntil) return;
+  if (v.age < 18 || v.age > 42) return;
+  if (Math.random() < 0.0003) v.pregnantUntil = TIME.tick + TIME.ticksPerDay * 3;
+}
+function tickPregnancy(v) {
+  if (v.pregnantUntil && TIME.tick >= v.pregnantUntil) {
+    const partner = villagers.find(o => o.id === v.partnerId);
+    const cls = partner && partner.cls === 'wealthy' ? 'wealthy'
+              : partner && partner.cls === 'middle' ? (Math.random()<0.7?'middle':'poor') : 'poor';
+    const child = makeVillager({ age: 0, cls, job: 'child', home: v.home });
+    child.x = v.x; child.y = v.y;
+    villagers.push(child);
+    v.pregnantUntil = null;
+    log(`A child is born to ${v.name}: ${child.name}.`, 'birth');
+  }
+}
+
+/* ------- SECTION 17: DEATH ------- */
+function killVillager(v, reason) {
+  v.hp = 0;
+  log(`${v.name} ${reason}.`, 'death');
+  corpses.push({ x: v.x, y: v.y, ttl: 5 });
+  if (v.partnerId) {
+    const p = villagers.find(o => o.id === v.partnerId);
+    if (p) p.partnerId = null;
+  }
+  if (v.isMayor) setTimeout(electMayor, 50);
+}
+
+/* ------- SECTION 18: ELECTIONS ------- */
+function electMayor() {
+  const cands = villagers.filter(v => v.hp > 0 && v.age > 25 && v.cls !== 'poor');
+  if (cands.length === 0) return;
+  const tally = new Map();
+  for (const voter of villagers) {
+    if (voter.hp <= 0 || voter.age < 18) continue;
+    const w = voter.cls === 'wealthy' ? 3 : voter.cls === 'middle' ? 2 : 1;
+    const scored = cands.map(c => ({ c, s: c.skills.leadership + Math.random()*20 - (c.isForeign && c.yearsInAldwyn < 5 ? 20 : 0) }));
+    scored.sort((a,b) => b.s - a.s);
+    tally.set(scored[0].c.id, (tally.get(scored[0].c.id)||0) + w);
+  }
+  let bestId = null, bestVotes = -1;
+  for (const [id, votes] of tally.entries()) if (votes > bestVotes) { bestVotes = votes; bestId = id; }
+  const winner = villagers.find(v => v.id === bestId);
+  if (winner) {
+    villagers.forEach(v => { if (v.isMayor) { v.isMayor = false; v.job = jobForClassAndAge(v.cls, v.age); } });
+    winner.isMayor = true; winner.job = 'mayor';
+    gainSkill(winner, 'leadership', 8);
+    log(`${winner.name} is elected Mayor with ${bestVotes} weighted votes.`, 'vote');
+  }
+}
+
+/* ------- SECTION 19: THREATS ------- */
+function spawnWolf() {
+  enemies.push({
+    type: 'wolf',
+    x: Math.random() < 0.5 ? 0 : WORLD_W,
+    y: Math.random() * WORLD_H,
+    hp: 35, dmg: 0.6, speed: 0.9,
+  });
+  log(`A lone wolf is sighted at the village edge.`, 'raid');
+}
+function spawnRaid() {
+  let count = 3 + Math.floor(Math.random()*3);
+  if (CELESTIAL.bloodmoon) count += 3; // blood moon empowers raids
+  const side = Math.floor(Math.random()*4);
+  for (let i = 0; i < count; i++) {
+    let x, y;
+    if (side === 0) { x = -20 + i*8; y = 50 + Math.random()*WORLD_H*0.8; }
+    else if (side === 1) { x = WORLD_W + 20 - i*8; y = 50 + Math.random()*WORLD_H*0.8; }
+    else if (side === 2) { x = 50 + Math.random()*WORLD_W*0.8; y = -20 + i*8; }
+    else { x = 50 + Math.random()*WORLD_W*0.8; y = WORLD_H + 20 - i*8; }
+    enemies.push({ type: 'bandit', x, y, hp: 55 + (CELESTIAL.bloodmoon?20:0), dmg: 1.0 + (CELESTIAL.bloodmoon?0.5:0), speed: 0.7 });
+  }
+  log(`⚔ A bandit warband descends upon Aldwyn!${CELESTIAL.bloodmoon ? ' (emboldened by the blood moon!)' : ''}`, 'raid');
+}
+function updateEnemies(dt) {
+  for (const e of enemies) {
+    const t = nearestVillagerOutside(e);
+    if (!t) continue;
+    const dx = t.x - e.x, dy = t.y - e.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 18) {
+      const nx = e.x + (dx/d) * e.speed * 60 * dt;
+      const ny = e.y + (dy/d) * e.speed * 60 * dt;
+      // Enemies also respect walls — break through slowly
+      const g = worldToGrid(nx, ny);
+      if (passable[g.gy] && passable[g.gy][g.gx]) { e.x = nx; e.y = ny; }
+      else {
+        // Try sliding around
+        const gx = worldToGrid(nx, e.y);
+        if (passable[gx.gy] && passable[gx.gy][gx.gx]) e.x = nx;
+        else {
+          const gy = worldToGrid(e.x, ny);
+          if (passable[gy.gy] && passable[gy.gy][gy.gx]) e.y = ny;
+          else { /* walking around the wall - move slowly along it */
+            e.x += (Math.random()-0.5) * 8 * dt;
+            e.y += (Math.random()-0.5) * 8 * dt;
+          }
+        }
+      }
+    } else {
+      t.hp -= e.dmg * 60 * dt * 0.05;
+      if (t.hp <= 0 && !t._announced) {
+        t._announced = true;
+        killVillager(t, e.type === 'wolf' ? 'was slain by a wolf' : 'fell to a bandit\'s blade');
+      }
+    }
+  }
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (enemies[i].hp <= 0) {
+      log(`A ${enemies[i].type} is felled.`, 'raid');
+      if (enemies[i].type === 'bandit') ECON.treasury += 8;
+      enemies.splice(i, 1);
+    }
+  }
+}
+function nearestVillagerOutside(e) {
+  let best = null, bd = Infinity;
+  for (const v of villagers) {
+    if (v.hp <= 0 || v.inside) continue;
+    const d = Math.hypot(v.x - e.x, v.y - e.y);
+    if (d < bd) { bd = d; best = v; }
+  }
+  if (!best) {
+    for (const v of villagers) {
+      if (v.hp <= 0) continue;
+      const d = Math.hypot(v.x - e.x, v.y - e.y);
+      if (d < bd) { bd = d; best = v; }
+    }
+  }
+  return best;
+}
+function nearestEnemy(v) {
+  let best = null, bd = Infinity;
+  for (const e of enemies) {
+    const d = Math.hypot(v.x - e.x, v.y - e.y);
+    if (d < bd) { bd = d; best = e; }
+  }
+  return best;
+}
+
+/* ------- SECTION 20: MIGRATION ------- */
+function spawnMigrant(forcedOriginId) {
+  const originId = forcedOriginId || FOREIGN_ORIGINS[Math.floor(Math.random()*FOREIGN_ORIGINS.length)];
+  const origin = ORIGINS[originId];
+  const cls = Math.random() < 0.7 ? 'poor' : 'middle';
+  const m = makeVillager({ cls, origin, age: 18 + Math.floor(Math.random()*25) });
+  // Spawn at a gate
+  const gates = [{x: 17.5*TILE, y: 2*TILE}, {x: 17.5*TILE, y: 22*TILE}, {x: 1*TILE, y: 11.5*TILE}, {x: 36*TILE, y: 11.5*TILE}];
+  const g = gates[Math.floor(Math.random()*gates.length)];
+  m.x = g.x; m.y = g.y;
+  villagers.push(m);
+  log(`${m.name}, a ${origin.desc || 'traveler'} from ${origin.name}, arrives at Aldwyn's gate.`, 'migrate');
+  // Pre-seed distrust from random locals
+  for (const v of villagers) {
+    if (v.id === m.id || v.isForeign) continue;
+    if (Math.random() < 0.4) v.relations[m.id] = -10 - Math.random()*30;
+  }
+  return m;
+}
+
+/* ------- SECTION 21: WEATHER & PLAGUE ------- */
+const WEATHER = {
+  kind: 'clear',         // clear, rain, snow, storm, fog, drought
+  endsAt: 0,
+};
+const CELESTIAL = {
+  eclipse: false, eclipseEndsAt: 0,
+  bloodmoon: false, bloodmoonEndsAt: 0,
+};
+const PLAGUE = {
+  active: false, endsAt: 0,
+};
+function setWeather(kind, durationDays = 1) {
+  WEATHER.kind = kind;
+  WEATHER.endsAt = TIME.tick + TIME.ticksPerDay * durationDays;
+  const niceNames = { clear:'Clear', rain:'Rain', snow:'Snow', storm:'Storm', fog:'Fog', drought:'Drought' };
+  const badge = document.getElementById('weather-badge');
+  if (kind === 'clear') badge.classList.remove('on');
+  else { badge.textContent = niceNames[kind] || kind; badge.classList.add('on'); }
+  log(`The weather turns to ${niceNames[kind] || kind}.`, 'weather');
+}
+function updateWeather() {
+  if (TIME.tick > WEATHER.endsAt && WEATHER.kind !== 'clear') {
+    setWeather('clear', 0);
+  }
+  if (CELESTIAL.eclipse && TIME.tick > CELESTIAL.eclipseEndsAt) {
+    CELESTIAL.eclipse = false;
+    document.getElementById('eclipse-overlay').classList.remove('on');
+    log('The sun returns. The eclipse passes.', 'weather');
+  }
+  if (CELESTIAL.bloodmoon && TIME.tick > CELESTIAL.bloodmoonEndsAt) {
+    CELESTIAL.bloodmoon = false;
+    document.getElementById('blood-moon-overlay').classList.remove('on');
+    log('The blood moon fades from the sky.', 'weather');
+  }
+  if (PLAGUE.active && TIME.tick > PLAGUE.endsAt) {
+    PLAGUE.active = false;
+    log('The plague has run its course.', 'weather');
+  }
+}
+function spreadPlague(dt) {
+  if (!PLAGUE.active) return;
+  for (const v of villagers) {
+    if (v.hp <= 0 || v.sick) continue;
+    // Adjacent infection
+    for (const o of villagers) {
+      if (o.id === v.id || !o.sick || o.hp <= 0) continue;
+      if (Math.hypot(v.x - o.x, v.y - o.y) < 40) {
+        if (Math.random() < dt * 0.05) {
+          v.sick = true;
+          v.sickUntil = TIME.tick + TIME.ticksPerDay * 2;
+          log(`${v.name} has taken ill.`, 'death');
+        }
+        break;
+      }
+    }
+  }
+}
+function updateFires(dt) {
+  for (let i = fires.length - 1; i >= 0; i--) {
+    const f = fires[i];
+    f.ttl -= dt;
+    // Damage villagers on tile
+    for (const v of villagers) {
+      if (v.hp <= 0 || v.inside) continue;
+      const g = worldToGrid(v.x, v.y);
+      if (g.gx === f.x && g.gy === f.y) {
+        v.burning = true;
+      }
+    }
+    // Spread (small chance)
+    if (Math.random() < dt * 0.05) {
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      const [dx, dy] = dirs[Math.floor(Math.random()*4)];
+      const nx = f.x + dx, ny = f.y + dy;
+      if (nx >= 0 && ny >= 0 && nx < GRID_W && ny < GRID_H && !isOnFire(nx, ny)) {
+        if (map[ny][nx] === 3 || map[ny][nx] === 4) { // forest or field burns
+          fires.push({ x: nx, y: ny, ttl: 6 + Math.random()*4, intensity: 1 });
+        }
+      }
+    }
+    if (f.ttl <= 0) fires.splice(i, 1);
+  }
+  // Burning villagers stop burning if no fire under them
+  for (const v of villagers) {
+    if (v.burning) {
+      const g = worldToGrid(v.x, v.y);
+      if (!isOnFire(g.gx, g.gy)) v.burning = false;
+    }
+  }
+}
+
+/* ------- SECTION 22: GOD POWERS ------- */
+const FAITH = { value: 100, max: 999 };
+let activePower = null; // currently armed targeting power
+
+const POWERS = {
+  clear: { cost: 5, instant: true, fn: () => setWeather('clear') },
+  rain:  { cost: 10, instant: true, fn: () => setWeather('rain', 1) },
+  snow:  { cost: 15, instant: true, fn: () => setWeather('snow', 1) },
+  storm: { cost: 25, instant: true, fn: () => setWeather('storm', 1) },
+  fog:   { cost: 10, instant: true, fn: () => setWeather('fog', 1) },
+  drought: { cost: 30, instant: true, fn: () => setWeather('drought', 3) },
+  fire:  { cost: 20, instant: false, hint: 'Click a tile' },
+  plague: { cost: 40, instant: true, fn: () => {
+    PLAGUE.active = true; PLAGUE.endsAt = TIME.tick + TIME.ticksPerDay * 5;
+    // Infect 2 random villagers
+    const alive = villagers.filter(v => v.hp > 0);
+    for (let i = 0; i < 2 && alive.length; i++) {
+      const v = alive[Math.floor(Math.random()*alive.length)];
+      v.sick = true; v.sickUntil = TIME.tick + TIME.ticksPerDay * 2;
+    }
+    log('A black plague descends upon the village!', 'god');
+  }},
+  earthquake: { cost: 50, instant: true, fn: () => {
+    log('The earth itself shakes! Buildings tremble.', 'god');
+    // Damage random villagers, scatter them, set some fires
+    for (const v of villagers) {
+      if (v.hp <= 0) continue;
+      v.hp -= 10 + Math.random()*20;
+      v.inside = null;
+      v.x += (Math.random()-0.5) * 30;
+      v.y += (Math.random()-0.5) * 30;
+      if (v.hp <= 0) killVillager(v, 'was crushed in the earthquake');
+    }
+    for (let i = 0; i < 4; i++) {
+      const x = Math.floor(Math.random()*GRID_W);
+      const y = Math.floor(Math.random()*GRID_H);
+      if (map[y][x] === 3 || map[y][x] === 4) fires.push({x,y,ttl:8,intensity:1});
+    }
+    // Shake screen
+    SHAKE.amount = 14; SHAKE.until = performance.now() + 1500;
+  }},
+  smite: { cost: 15, instant: false, hint: 'Click a villager or beast' },
+  eclipse: { cost: 35, instant: true, fn: () => {
+    CELESTIAL.eclipse = true;
+    CELESTIAL.eclipseEndsAt = TIME.tick + TIME.ticksPerDay * 0.5;
+    document.getElementById('eclipse-overlay').classList.add('on');
+    log('The sun is devoured! The world darkens.', 'god');
+    // Villagers panic
+    for (const v of villagers) v.social -= 20;
+  }},
+  bloodmoon: { cost: 45, instant: true, fn: () => {
+    CELESTIAL.bloodmoon = true;
+    CELESTIAL.bloodmoonEndsAt = TIME.tick + TIME.ticksPerDay * 1;
+    document.getElementById('blood-moon-overlay').classList.add('on');
+    log('A blood moon rises! Dark portents fill the air.', 'god');
+  }},
+  bless: { cost: 8, instant: false, hint: 'Click a villager' },
+  feed: { cost: 15, instant: true, fn: () => {
+    ECON.granaryFood += 80; ECON.marketBread += 30;
+    for (const v of villagers) v.hunger = Math.max(0, v.hunger - 50);
+    log('Manna falls from heaven. The hungry are fed.', 'god');
+  }},
+  heal: { cost: 25, instant: true, fn: () => {
+    for (const v of villagers) {
+      if (v.hp > 0 && v.hp < 100) v.hp = Math.min(100, v.hp + 50);
+    }
+    log('A warm light heals the wounded.', 'god');
+  }},
+  cure: { cost: 50, instant: true, fn: () => {
+    PLAGUE.active = false;
+    for (const v of villagers) v.sick = false;
+    log('The plague vanishes by divine will.', 'god');
+  }},
+  guard: { cost: 20, instant: true, fn: () => {
+    // Conscript a non-essential villager into being a guard
+    const cands = villagers.filter(v => v.hp > 0 && v.age >= 18 && v.age <= 50 && v.job !== 'guard' && v.job !== 'mayor' && v.job !== 'child');
+    if (cands.length === 0) { log('There are none to conscript.', 'god'); return; }
+    const v = cands[Math.floor(Math.random()*cands.length)];
+    const oldJob = v.job; v.job = 'guard';
+    gainSkill(v, 'combat', 15);
+    log(`${v.name} (formerly ${oldJob}) is conscripted into the guard.`, 'god');
+  }},
+  migrant: { cost: 10, instant: true, fn: () => spawnMigrant() },
+};
+
+function tryPower(name) {
+  const p = POWERS[name];
+  if (!p) return;
+  if (FAITH.value < p.cost) { log('Not enough faith.', 'god'); return; }
+  if (p.instant) {
+    FAITH.value -= p.cost;
+    p.fn();
+  } else {
+    activePower = name;
+    stage.classList.add('god-targeting');
+    document.querySelectorAll('.god-btn').forEach(b => b.classList.toggle('active', b.dataset.power === name));
+  }
+}
+function applyTargetedPower(name, wx, wy) {
+  const v = villagerAt(wx, wy);
+  const e = enemyAt(wx, wy);
+  switch (name) {
+    case 'fire': {
+      const g = worldToGrid(wx, wy);
+      fires.push({ x: g.gx, y: g.gy, ttl: 10, intensity: 1 });
+      log('Divine fire descends!', 'god');
+      FAITH.value -= POWERS.fire.cost;
+      break;
+    }
+    case 'smite':
+      if (e) {
+        e.hp = 0;
+        log('A bolt smites the enemy!', 'god');
+        FAITH.value -= POWERS.smite.cost;
+      } else if (v) {
+        v.hp = 0;
+        killVillager(v, 'was smitten by divine wrath');
+        FAITH.value -= POWERS.smite.cost;
+      } else { return; }
+      break;
+    case 'bless':
+      if (v) {
+        v.hp = Math.min(100, v.hp + 40);
+        v.energy = 100; v.hunger = 0; v.social = 100;
+        for (const sk of SKILL_LIST) gainSkill(v, sk, 5);
+        log(`${v.name} is blessed by the divine.`, 'god');
+        FAITH.value -= POWERS.bless.cost;
+      } else return;
+      break;
+  }
+  activePower = null;
+  stage.classList.remove('god-targeting');
+  document.querySelectorAll('.god-btn').forEach(b => b.classList.remove('active'));
+}
+
+// Screen shake
+const SHAKE = { amount: 0, until: 0 };
+
+/* ------- SECTION 23: RENDERING ------- */
+function drawTile(x, y, t) {
+  const px = x * TILE, py = y * TILE;
+  const v = tileVariant[y][x];
+  let fill;
+  switch (t) {
+    case 0: fill = '#9eb56a'; break;
+    case 1: fill = '#c2a878'; break;
+    case 2: {
+      // Water with ripples
+      const phase = (TIME.tick * 0.05 + x*0.5 + y*0.7);
+      const ripple = Math.sin(phase) * 8;
+      fill = `rgb(${88 + ripple|0},${134},${168 + ripple|0})`;
+      break;
+    }
+    case 3: fill = '#3a5a2b'; break;
+    case 4: fill = '#c9b04a'; break;
+    case 5: fill = '#b5a280'; break;
+    case 6: fill = '#7a9a4a'; break;
+    case 7: fill = '#9a8060'; break;
+  }
+  ctx.fillStyle = fill;
+  ctx.fillRect(px, py, TILE, TILE);
+  // Detailed tile texture
+  if (t === 0) {
+    // Grass tufts
+    ctx.fillStyle = '#7a9550';
+    if (v < 0.3) { ctx.fillRect(px + 6, py + 8, 2, 4); ctx.fillRect(px + 9, py + 7, 2, 5); ctx.fillRect(px + 7, py + 10, 2, 3); }
+    if (v > 0.7) { ctx.fillRect(px + 20, py + 20, 2, 4); ctx.fillRect(px + 23, py + 19, 2, 5); }
+    ctx.fillStyle = '#b5cc7a';
+    if (v > 0.4 && v < 0.6) { ctx.fillRect(px + 14, py + 14, 2, 3); ctx.fillRect(px + 16, py + 13, 2, 3); }
+    // Tiny flowers
+    if (v < 0.05) { ctx.fillStyle = '#e8c547'; ctx.fillRect(px + 10, py + 22, 2, 2); }
+    if (v > 0.95) { ctx.fillStyle = '#c84a7a'; ctx.fillRect(px + 22, py + 8, 2, 2); }
+  } else if (t === 1) {
+    // Path cobbles
+    ctx.fillStyle = '#a08a60';
+    ctx.fillRect(px + 4, py + 4, 6, 5);
+    ctx.fillRect(px + 14, py + 6, 7, 6);
+    ctx.fillRect(px + 6, py + 16, 7, 5);
+    ctx.fillRect(px + 18, py + 18, 7, 6);
+    ctx.fillRect(px + 24, py + 4, 6, 7);
+    ctx.fillStyle = 'rgba(28,18,8,0.2)';
+    ctx.fillRect(px + 4, py + 9, 6, 1);
+    ctx.fillRect(px + 14, py + 12, 7, 1);
+  } else if (t === 3) {
+    // Forest trees
+    ctx.fillStyle = '#5a3a1a';
+    ctx.fillRect(px + 13, py + 18, 3, 6);
+    ctx.fillStyle = '#1f3a18';
+    ctx.beginPath();
+    ctx.arc(px + 10, py + 12, 7, 0, Math.PI*2);
+    ctx.arc(px + 22, py + 18, 8, 0, Math.PI*2);
+    ctx.arc(px + 15, py + 8, 6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#2a4a20';
+    ctx.beginPath();
+    ctx.arc(px + 10, py + 10, 4, 0, Math.PI*2);
+    ctx.arc(px + 22, py + 16, 5, 0, Math.PI*2);
+    ctx.fill();
+  } else if (t === 4) {
+    ctx.fillStyle = '#a88a30';
+    for (let i = 0; i < 5; i++) {
+      ctx.fillRect(px + 3 + i*6, py + 2, 1, TILE - 4);
+    }
+    ctx.fillStyle = '#e0c870';
+    for (let i = 0; i < 5; i++) {
+      ctx.fillRect(px + 4 + i*6, py + 3, 1, 4);
+      ctx.fillRect(px + 4 + i*6, py + 14, 1, 4);
+      ctx.fillRect(px + 4 + i*6, py + 24, 1, 4);
+    }
+  } else if (t === 2) {
+    // Water highlights
+    ctx.fillStyle = `rgba(255,255,255,${0.2 + Math.sin(TIME.tick*0.1 + x)*0.1})`;
+    ctx.fillRect(px+4, py+6, 5, 1);
+    ctx.fillRect(px+18, py+22, 7, 1);
+  } else if (t === 5) {
+    // Plaza cobbles - more refined
+    ctx.strokeStyle = '#8a7250';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++) {
+        const offset = (i+j) % 2 === 0 ? 0 : 2;
+        ctx.strokeRect(px + i*10 + 2 + offset, py + j*10 + 2, 9, 9);
+      }
+    ctx.fillStyle = 'rgba(28,18,8,0.1)';
+    ctx.fillRect(px + 5, py + 5, 2, 2);
+    ctx.fillRect(px + 20, py + 22, 2, 2);
+  } else if (t === 6) {
+    // Garden flowers
+    ctx.fillStyle = '#e8c547'; ctx.fillRect(px + 7, py + 7, 3, 3);
+    ctx.fillStyle = '#b8417b'; ctx.fillRect(px + 20, py + 17, 3, 3);
+    ctx.fillStyle = '#a8e0a0'; ctx.fillRect(px + 14, py + 23, 3, 3);
+    ctx.fillStyle = '#5a8aaa'; ctx.fillRect(px + 23, py + 6, 3, 3);
+    ctx.fillStyle = '#3a5a2b';
+    ctx.fillRect(px + 8, py + 10, 1, 3);
+    ctx.fillRect(px + 21, py + 20, 1, 3);
+  } else if (t === 7) {
+    // Dirt - small stones
+    ctx.fillStyle = '#7a6044';
+    if (v < 0.4) ctx.fillRect(px + 5 + v*40, py + 8, 2, 2);
+    if (v > 0.6) ctx.fillRect(px + 18, py + 20, 2, 2);
+    ctx.fillStyle = '#b59070';
+    ctx.fillRect(px + 12, py + 14, 2, 2);
+  }
+  // Snow overlay
+  if (WEATHER.kind === 'snow' && t !== 2) {
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(px + (v*30|0) % TILE, py + ((v*53)|0) % TILE, 1, 1);
+    ctx.fillRect(px + (v*70|0) % TILE, py + ((v*23)|0) % TILE, 1, 1);
+  }
+  // Drought overlay
+  if (WEATHER.kind === 'drought' && (t === 0 || t === 4 || t === 6)) {
+    ctx.fillStyle = 'rgba(160,120,60,0.3)';
+    ctx.fillRect(px, py, TILE, TILE);
+  }
+  // Fire on tile
+  const fire = fires.find(f => f.x === x && f.y === y);
+  if (fire) {
+    const flick = 0.7 + Math.sin(TIME.tick*0.4 + x*3) * 0.3;
+    ctx.fillStyle = `rgba(255,140,40,${0.8*flick})`;
+    ctx.fillRect(px + 4, py + 4, TILE - 8, TILE - 8);
+    ctx.fillStyle = `rgba(255,220,80,${flick})`;
+    ctx.beginPath();
+    ctx.moveTo(px + TILE/2, py + 8);
+    ctx.lineTo(px + TILE/2 - 6, py + TILE - 6);
+    ctx.lineTo(px + TILE/2 + 6, py + TILE - 6);
+    ctx.fill();
+  }
+}
+
+function drawWall(w) {
+  const px = w.x * TILE, py = w.y * TILE;
+  // Palisade
+  ctx.fillStyle = '#6a4a2a';
+  ctx.fillRect(px + 2, py + 8, TILE - 4, TILE - 14);
+  // Vertical stakes
+  ctx.fillStyle = '#5a3a1a';
+  for (let i = 0; i < 4; i++) {
+    const sx = px + 4 + i*6;
+    ctx.beginPath();
+    ctx.moveTo(sx, py + 6);
+    ctx.lineTo(sx + 3, py + 2);
+    ctx.lineTo(sx + 6, py + 6);
+    ctx.lineTo(sx + 6, py + TILE - 6);
+    ctx.lineTo(sx, py + TILE - 6);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Highlights
+  ctx.strokeStyle = '#4a2a14';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px + 2, py + 6, TILE - 4, TILE - 10);
+}
+
+function drawBuilding(b) {
+  const px = b.x * TILE, py = b.y * TILE;
+  const w = b.w * TILE, h = b.h * TILE;
+  // Stone foundation
+  ctx.fillStyle = '#8a7a5a';
+  ctx.fillRect(px, py + h - 6, w, 6);
+  // walls with stone texture
+  ctx.fillStyle = '#d9c1a0';
+  ctx.fillRect(px, py, w, h - 6);
+  // Stone lines
+  ctx.strokeStyle = 'rgba(80,60,40,0.4)';
+  ctx.lineWidth = 1;
+  for (let yy = 6; yy < h - 8; yy += 6) {
+    ctx.beginPath();
+    ctx.moveTo(px, py + yy);
+    ctx.lineTo(px + w, py + yy);
+    ctx.stroke();
+  }
+  for (let xx = 8; xx < w; xx += 12) {
+    ctx.beginPath();
+    ctx.moveTo(px + xx, py);
+    ctx.lineTo(px + xx, py + h - 6);
+    ctx.stroke();
+  }
+  // outline
+  ctx.strokeStyle = '#1c1208';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px+0.5, py+0.5, w-1, h-1);
+
+  // Roof
+  if (b.type === 'tower') {
+    // Crenellated top
+    ctx.fillStyle = b.color;
+    ctx.fillRect(px - 2, py - 6, w + 4, 8);
+    ctx.fillStyle = '#d9c1a0';
+    for (let i = 0; i < w/8; i++) {
+      if (i % 2 === 0) ctx.fillRect(px + i*8 - 1, py - 12, 6, 6);
+    }
+  } else if (b.type === 'chapel') {
+    // Pointed roof + cross
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.moveTo(px - 6, py + 10);
+    ctx.lineTo(px + w/2, py - 22);
+    ctx.lineTo(px + w + 6, py + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#1c1208'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Cross
+    ctx.fillStyle = '#ede0c4';
+    ctx.fillRect(px + w/2 - 1, py - 26, 2, 8);
+    ctx.fillRect(px + w/2 - 4, py - 22, 8, 2);
+  } else {
+    // Thatched/tiled roof
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.moveTo(px - 4, py + 8);
+    ctx.lineTo(px + w/2, py - 14);
+    ctx.lineTo(px + w + 4, py + 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#1c1208'; ctx.stroke();
+    // Roof shingles
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(px - 4 + i*(w/8), py + 8 - i*(22/4));
+      ctx.lineTo(px + w + 4 - i*(w/8), py + 8 - i*(22/4));
+      ctx.stroke();
+    }
+  }
+
+  // Door
+  ctx.fillStyle = '#3a1d0a';
+  ctx.fillRect(px + w/2 - 5, py + h - 14, 10, 14);
+  // Door knob
+  ctx.fillStyle = '#b8860b';
+  ctx.fillRect(px + w/2 + 2, py + h - 7, 1, 1);
+  // Windows with glow
+  const someoneInside = villagers.some(v => v.inside === b && v.hp > 0);
+  const glowing = (isNight() || WEATHER.kind === 'storm' || CELESTIAL.eclipse) && someoneInside;
+  for (let wi = 0; wi < Math.max(1, Math.floor(w/30)); wi++) {
+    const wx = px + 6 + wi * 24;
+    if (wx + 6 > px + w - 6) continue;
+    ctx.fillStyle = glowing ? 'rgba(255,200,90,0.9)' : 'rgba(80,60,40,0.4)';
+    ctx.fillRect(wx, py + 12, 6, 5);
+    ctx.strokeStyle = '#1c1208'; ctx.lineWidth = 1;
+    ctx.strokeRect(wx, py + 12, 6, 5);
+    // Cross window divider
+    ctx.beginPath(); ctx.moveTo(wx + 3, py + 12); ctx.lineTo(wx + 3, py + 17); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wx, py + 14.5); ctx.lineTo(wx + 6, py + 14.5); ctx.stroke();
+  }
+
+  // Sign
+  ctx.font = '700 11px Cinzel, serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#1c1208';
+  ctx.fillText(b.name, px + w/2, py + h + 14);
+
+  // Occupant badge
+  const count = villagers.filter(v => v.inside === b && v.hp > 0).length;
+  if (count > 0) {
+    ctx.fillStyle = 'rgba(28,18,8,0.85)';
+    ctx.beginPath();
+    ctx.arc(px + w - 6, py + 4, 8, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#ede0c4';
+    ctx.font = '700 11px Cinzel, serif';
+    ctx.fillText(count.toString(), px + w - 6, py + 8);
+  }
+}
+
+function drawVillager(v) {
+  if (v.hp <= 0) return;
+  if (v.inside && !v.fallingInWater) return;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(v.x, v.y + 6, 6, 2, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Body (cloak)
+  ctx.fillStyle = v.isMayor ? '#e8c547' : v.color;
+  ctx.strokeStyle = '#1c1208'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(v.x, v.y, v.age < 14 ? 4 : 6, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // Accent stripe (foreigners)
+  if (v.accentColor) {
+    ctx.fillStyle = v.accentColor;
+    ctx.fillRect(v.x - 3, v.y - 1, 6, 2);
+  }
+  // Head
+  ctx.fillStyle = '#f1d6a0';
+  ctx.beginPath();
+  ctx.arc(v.x, v.y - 7, v.age < 14 ? 3 : 4, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // Hat / hood for some origins
+  if (v.origin && v.origin.id === 'greycross') {
+    ctx.fillStyle = '#4a4a5a';
+    ctx.beginPath();
+    ctx.arc(v.x, v.y - 9, 5, Math.PI, 0);
+    ctx.fill(); ctx.stroke();
+  } else if (v.origin && v.origin.id === 'northlands') {
+    ctx.fillStyle = '#5a4a3a';
+    ctx.fillRect(v.x - 4, v.y - 11, 8, 2);
+    // Horns
+    ctx.fillStyle = '#d8c890';
+    ctx.fillRect(v.x - 5, v.y - 14, 1, 3);
+    ctx.fillRect(v.x + 4, v.y - 14, 1, 3);
+  } else if (v.origin && v.origin.id === 'eastreach') {
+    // Turban
+    ctx.fillStyle = '#e8c547';
+    ctx.beginPath();
+    ctx.arc(v.x, v.y - 9, 5, Math.PI, 0);
+    ctx.fill(); ctx.stroke();
+  }
+  // Mayor crown
+  if (v.isMayor) {
+    ctx.fillStyle = '#e8c547';
+    ctx.beginPath();
+    ctx.moveTo(v.x - 5, v.y - 11);
+    ctx.lineTo(v.x - 2, v.y - 15);
+    ctx.lineTo(v.x, v.y - 11);
+    ctx.lineTo(v.x + 2, v.y - 15);
+    ctx.lineTo(v.x + 5, v.y - 11);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+  // Guard weapon
+  if (v.job === 'guard') {
+    ctx.strokeStyle = '#a0a0b0'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(v.x + 7, v.y - 2);
+    ctx.lineTo(v.x + 7, v.y - 12);
+    ctx.stroke();
+    ctx.fillStyle = '#8a7a4a';
+    ctx.fillRect(v.x + 6, v.y - 14, 3, 2);
+  }
+  // Selected
+  if (selectedId === v.id) {
+    ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(v.x, v.y - 2, 14, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  if (heldId === v.id) {
+    ctx.strokeStyle = '#e8c547'; ctx.lineWidth = 2.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(v.x, v.y - 2, 18, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // Z
+  if (v.state === 'sleeping') {
+    ctx.fillStyle = '#1c1208'; ctx.font = '700 11px Cinzel, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('z', v.x + 8, v.y - 10);
+  }
+  // Sick
+  if (v.sick) {
+    ctx.fillStyle = '#4a6a3a';
+    ctx.font = '700 11px Cinzel, serif';
+    ctx.fillText('☣', v.x - 9, v.y - 8);
+  }
+  // Burning
+  if (v.burning) {
+    const flick = 0.7 + Math.sin(TIME.tick*0.5 + v.id) * 0.3;
+    ctx.fillStyle = `rgba(255,180,40,${flick})`;
+    ctx.beginPath();
+    ctx.moveTo(v.x, v.y - 14);
+    ctx.lineTo(v.x - 5, v.y - 2);
+    ctx.lineTo(v.x + 5, v.y - 2);
+    ctx.fill();
+  }
+  // Chat indicator
+  if (v.chatPartner) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.strokeStyle = '#1c1208';
+    ctx.beginPath();
+    ctx.arc(v.x + 8, v.y - 12, 4, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1c1208';
+    ctx.font = '700 8px Cinzel, serif';
+    ctx.fillText('…', v.x + 8, v.y - 10);
+  }
+  // Fight
+  if (v.fightTarget) {
+    ctx.fillStyle = '#8b1e1e'; ctx.font = '700 14px Cinzel, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('✦', v.x, v.y - 14);
+  }
+  if (v.fallingInWater) {
+    ctx.fillStyle = '#5d86a8'; ctx.font = '700 14px Cinzel, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('~', v.x - 8, v.y - 6);
+    ctx.fillText('~', v.x + 8, v.y - 6);
+  }
+}
+
+function drawFloatingLines() {
+  for (const f of floatingLines) {
+    const alpha = Math.min(1, f.ttl / f.maxTtl * 1.5);
+    const lift = (f.maxTtl - f.ttl) * 4;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // Speech bubble
+    const padX = 4, padY = 3;
+    ctx.font = '600 11px IM Fell English, serif';
+    const w = ctx.measureText(f.text).width + padX*2;
+    const h = 16;
+    const bx = f.x - w/2;
+    const by = f.y - lift - h;
+    ctx.fillStyle = 'rgba(239,225,194,0.95)';
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(bx, by, w, h);
+    ctx.strokeRect(bx, by, w, h);
+    // Tail
+    ctx.beginPath();
+    ctx.moveTo(f.x - 3, by + h);
+    ctx.lineTo(f.x, by + h + 5);
+    ctx.lineTo(f.x + 3, by + h);
+    ctx.fillStyle = 'rgba(239,225,194,0.95)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(f.x - 3, by + h);
+    ctx.lineTo(f.x, by + h + 5);
+    ctx.lineTo(f.x + 3, by + h);
+    ctx.strokeStyle = f.color; ctx.stroke();
+    ctx.fillStyle = f.color;
+    ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, by + 11);
+    ctx.restore();
+  }
+}
+
+function drawEnemy(e) {
+  ctx.fillStyle = e.type === 'wolf' ? '#3a3a3a' : '#5a1010';
+  ctx.strokeStyle = '#0a0000'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, 6, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  if (e.type === 'bandit') {
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(e.x + 6, e.y - 6); ctx.lineTo(e.x + 12, e.y - 12);
+    ctx.stroke();
+    // Bandanna
+    ctx.fillStyle = '#1c1208';
+    ctx.fillRect(e.x - 4, e.y - 9, 8, 2);
+  } else {
+    ctx.fillStyle = '#3a3a3a';
+    ctx.beginPath();
+    ctx.moveTo(e.x - 5, e.y - 4); ctx.lineTo(e.x - 7, e.y - 9); ctx.lineTo(e.x - 3, e.y - 6); ctx.fill();
+    ctx.moveTo(e.x + 5, e.y - 4); ctx.lineTo(e.x + 7, e.y - 9); ctx.lineTo(e.x + 3, e.y - 6); ctx.fill();
+    // Glowing eyes (esp. at night)
+    ctx.fillStyle = (isNight() || CELESTIAL.bloodmoon) ? '#e8c547' : '#1c1208';
+    ctx.fillRect(e.x - 3, e.y - 4, 1, 1);
+    ctx.fillRect(e.x + 2, e.y - 4, 1, 1);
+  }
+  // HP indicator
+  if (e.hp < 50) {
+    ctx.fillStyle = 'rgba(28,18,8,0.7)';
+    ctx.fillRect(e.x - 8, e.y - 14, 16, 2);
+    ctx.fillStyle = '#8b1e1e';
+    ctx.fillRect(e.x - 8, e.y - 14, 16 * (e.hp / (e.type === 'wolf' ? 35 : 55)), 2);
+  }
+}
+
+function render() {
+  // Screen shake
+  let shakeX = 0, shakeY = 0;
+  if (performance.now() < SHAKE.until) {
+    shakeX = (Math.random()-0.5) * SHAKE.amount;
+    shakeY = (Math.random()-0.5) * SHAKE.amount;
+    SHAKE.amount *= 0.97;
+  } else SHAKE.amount = 0;
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(cam.x + shakeX, cam.y + shakeY);
+  ctx.scale(cam.scale, cam.scale);
+
+  for (let y = 0; y < GRID_H; y++)
+    for (let x = 0; x < GRID_W; x++) drawTile(x, y, map[y][x]);
+
+  // Walls drawn over tiles
+  for (const w of WALLS) drawWall(w);
+
+  for (const b of BUILDINGS) drawBuilding(b);
+
+  ctx.fillStyle = '#5a1010';
+  for (const c of corpses) {
+    ctx.globalAlpha = Math.min(1, c.ttl / 5);
+    ctx.fillRect(c.x - 4, c.y - 1, 8, 2);
+    ctx.globalAlpha = 1;
+  }
+
+  const outside = villagers.filter(v => v.hp > 0 && !v.inside).sort((a,b) => a.y - b.y);
+  for (const v of outside) drawVillager(v);
+  for (const e of enemies) drawEnemy(e);
+  drawFloatingLines();
+
+  ctx.restore();
+  updateVignette();
+  renderWeatherOverlay();
+}
+
+function updateVignette() {
+  const h = hourOfDay();
+  let r, g, b, a;
+  if (CELESTIAL.eclipse) { r=10; g=8; b=18; a=0.7; }
+  else if (h < 5)       { r=10; g=20; b=50; a=0.55; }
+  else if (h < 7)  { const t=(h-5)/2; r=lerp(10,220,t); g=lerp(20,120,t); b=lerp(50,60,t); a=lerp(0.55,0.25,t); }
+  else if (h < 17) { r=255; g=255; b=255; a=0; }
+  else if (h < 20) { const t=(h-17)/3; r=lerp(255,200,t); g=lerp(220,80,t); b=lerp(150,40,t); a=lerp(0.05,0.45,t); }
+  else             { r=10; g=20; b=50; a=0.55; }
+  if (WEATHER.kind === 'storm') a = Math.max(a, 0.5);
+  if (WEATHER.kind === 'fog') a = Math.max(a, 0.4);
+  document.getElementById('vignette').style.background =
+    `radial-gradient(ellipse at center, rgba(${r|0},${g|0},${b|0},${a*0.5}) 0%, rgba(${r|0},${g|0},${b|0},${a}) 100%)`;
+}
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// Weather overlay particles (rain, snow, fog, storm)
+const particles = [];
+function renderWeatherOverlay() {
+  const overlay = document.getElementById('weather-overlay');
+  // Particles handled in canvas
+  if (['rain','snow','storm','fog'].includes(WEATHER.kind)) {
+    // Spawn particles
+    const spawnCount = WEATHER.kind === 'snow' ? 2 : WEATHER.kind === 'fog' ? 1 : WEATHER.kind === 'storm' ? 4 : 3;
+    for (let i = 0; i < spawnCount; i++) {
+      particles.push({
+        kind: WEATHER.kind,
+        x: Math.random() * W,
+        y: WEATHER.kind === 'fog' ? Math.random() * H : -10,
+        vx: WEATHER.kind === 'storm' ? -3 : WEATHER.kind === 'fog' ? 0.5 : 0,
+        vy: WEATHER.kind === 'snow' ? 1.5 : WEATHER.kind === 'fog' ? 0 : 6 + (WEATHER.kind === 'storm' ? 4 : 0),
+        ttl: WEATHER.kind === 'fog' ? 8 : 3,
+      });
+    }
+  }
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.ttl -= 0.02;
+    if (p.y > H || p.x < -20 || p.ttl <= 0) { particles.splice(i, 1); continue; }
+    ctx.save();
+    if (p.kind === 'rain' || p.kind === 'storm') {
+      ctx.strokeStyle = 'rgba(180,200,230,0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + p.vx, p.y + p.vy);
+      ctx.stroke();
+    } else if (p.kind === 'snow') {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.5, 0, Math.PI*2);
+      ctx.fill();
+    } else if (p.kind === 'fog') {
+      ctx.fillStyle = 'rgba(200,200,210,0.06)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 30, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  // Lightning flash
+  if (WEATHER.kind === 'storm' && Math.random() < 0.005) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+/* ------- SECTION 24: HUD / TOOLTIP / TRANSCRIPT ------- */
+let selectedId = null;
+let hoverId = null;
+let heldId = null;
+let heldOffsetX = 0, heldOffsetY = 0;
+
+function refreshPanel() {
+  document.getElementById('clock').textContent = `Day ${TIME.day} · ${phaseOfDay()}`;
+  document.getElementById('threat-warn').classList.toggle('on', enemies.some(e => e.type === 'bandit'));
+
+  const alive = villagers.filter(v => v.hp > 0);
+  const counts = { poor:0, middle:0, wealthy:0, foreign:0, guards:0, sick:0 };
+  for (const v of alive) {
+    counts[v.cls]++;
+    if (v.isForeign) counts.foreign++;
+    if (v.job === 'guard') counts.guards++;
+    if (v.sick) counts.sick++;
+  }
+  const mayor = alive.find(v => v.isMayor);
+  document.getElementById('realm-stats').innerHTML = `
+    <span class="k">Souls</span>      <span class="v">${alive.length}</span>
+    <span class="k">Foreigners</span> <span class="v">${counts.foreign}</span>
+    <span class="k">Guards</span>     <span class="v">${counts.guards}</span>
+    <span class="k">Sick</span>       <span class="v">${counts.sick}</span>
+    <span class="k">Poor</span>       <span class="v">${counts.poor}</span>
+    <span class="k">Burghers</span>   <span class="v">${counts.middle}</span>
+    <span class="k">Gentry</span>     <span class="v">${counts.wealthy}</span>
+    <span class="k">Treasury</span>   <span class="v">${ECON.treasury|0}g</span>
+    <span class="k">Granary</span>    <span class="v">${ECON.granaryFood|0}</span>
+    <span class="k">Bread</span>      <span class="v">${ECON.marketBread|0} @ ${marketPrice('bread')}g</span>
+    <span class="k">Mayor</span>      <span class="v">${mayor ? mayor.name.split(' ')[0] : '—'}</span>
+  `;
+
+  // Faith
+  document.getElementById('faith-val').textContent = Math.floor(FAITH.value);
+  // Disable god buttons not affordable
+  document.querySelectorAll('.god-btn').forEach(btn => {
+    const p = POWERS[btn.dataset.power];
+    if (p && FAITH.value < p.cost) btn.disabled = true;
+    else btn.disabled = false;
+  });
+
+  const sel = document.getElementById('selected');
+  const v = villagers.find(x => x.id === selectedId && x.hp > 0);
+  if (!v) { sel.innerHTML = '<em>None selected. Click a wanderer upon the map.</em>'; return; }
+
+  const partner = villagers.find(o => o.id === v.partnerId);
+  const spec = topSpecialization(v);
+  let relsHtml = '';
+  const friends = [], rivals = [];
+  for (const oid in v.relations) {
+    const o = villagers.find(x => x.id === parseInt(oid));
+    if (!o || o.hp <= 0) continue;
+    const s = v.relations[oid];
+    if (s > 40) friends.push({ name: o.name, s });
+    else if (s < -40) rivals.push({ name: o.name, s });
+  }
+  friends.sort((a,b) => b.s - a.s); rivals.sort((a,b) => a.s - b.s);
+  if (friends.length) relsHtml += `<div class="rivals"><em>Friends:</em> ${friends.slice(0,3).map(f=>`<span class="friend">${f.name}</span>`).join(', ')}</div>`;
+  if (rivals.length)  relsHtml += `<div class="rivals"><em>Rivals:</em> ${rivals.slice(0,3).map(f=>`<span class="rival">${f.name}</span>`).join(', ')}</div>`;
+
+  let skillsHtml = '';
+  for (const s of SKILL_LIST) {
+    const val = v.skills[s] || 0;
+    if (val < 1) continue;
+    skillsHtml += `<div class="skill-row${val >= 60 ? ' spec' : ''}">
+      <span class="lbl">${s}</span>
+      <div class="bar skill"><i style="width:${val}%"></i></div>
+      <span class="val">${val|0}</span></div>`;
+  }
+
+  sel.innerHTML = `
+    <span class="name">${v.name}${v.isMayor ? ' ✦' : ''}</span>
+    <span class="role-tag ${v.cls}">${v.cls}</span>
+    <span class="role-tag">${v.job}</span>
+    ${v.isMayor ? '<span class="role-tag mayor">Mayor</span>' : ''}
+    ${v.isForeign ? `<span class="role-tag foreign">${v.origin.name}</span>` : ''}
+    ${v.sick ? '<span class="role-tag sick">Sick</span>' : ''}
+    ${spec ? `<span class="role-tag mayor">${spec}</span>` : ''}
+    <div style="margin-top:8px;">
+      <div class="bar-label"><span>Health</span><span>${v.hp|0}</span></div>
+      <div class="bar hp"><i style="width:${v.hp}%"></i></div>
+      <div class="bar-label"><span>Hunger</span><span>${v.hunger|0}</span></div>
+      <div class="bar hunger"><i style="width:${v.hunger}%"></i></div>
+      <div class="bar-label"><span>Energy</span><span>${v.energy|0}</span></div>
+      <div class="bar energy"><i style="width:${v.energy}%"></i></div>
+      <div class="bar-label"><span>Spirit</span><span>${v.social|0}</span></div>
+      <div class="bar social"><i style="width:${v.social}%"></i></div>
+    </div>
+    <div style="margin-top:8px; font-size:13px;">
+      <em>Aged</em> ${v.age} winters &nbsp;·&nbsp; <em>Purse</em> ${v.gold.toFixed(0)} gold<br>
+      <em>Doing</em>: ${v.state}${v.inside ? ` (in ${v.inside.name})` : v.chatPartner ? ' (chatting)' : v.fightTarget ? ' (fighting)' : ''}<br>
+      ${partner ? `<em>Wed to</em>: ${partner.name}` : '<em>Unwed</em>'}
+      ${v.pregnantUntil ? '<br>♥ <em>With child</em>' : ''}
+      ${v.isForeign ? `<br><em>Hails from</em> ${v.origin.name} — ${v.origin.desc}` : ''}
+    </div>
+    ${skillsHtml ? `<div style="margin-top:8px;"><em style="font-size:12px; color:var(--ink-soft);">Skills:</em><div style="margin-top:4px;">${skillsHtml}</div></div>` : ''}
+    ${relsHtml}
+  `;
+}
+
+function updateTooltip() {
+  const tt = document.getElementById('tooltip');
+  if (heldId || activePower) { tt.classList.remove('on'); return; }
+  if (hoverId === null) { tt.classList.remove('on'); return; }
+  const v = villagers.find(x => x.id === hoverId);
+  if (!v || v.hp <= 0 || v.inside) { tt.classList.remove('on'); return; }
+  const screenX = v.x * cam.scale + cam.x;
+  const screenY = v.y * cam.scale + cam.y;
+  tt.style.left = screenX + 'px';
+  tt.style.top = screenY + 'px';
+  const spec = topSpecialization(v);
+  tt.innerHTML = `${v.name}${v.isMayor ? ' ✦' : ''}<span class="sub">${spec || v.job} · ${v.cls}</span>${v.isForeign ? `<span class="origin">from ${v.origin.name}</span>` : ''}`;
+  tt.classList.add('on');
+}
+
+// Conversation transcript panel
+let transcriptId = null;
+function openTranscript(v) {
+  if (!v.chatPartner && (!v.chatHistory || v.chatHistory.length === 0)) return;
+  transcriptId = v.id;
+  const partner = villagers.find(o => o.id === v.chatPartner);
+  const body = document.getElementById('transcript-body');
+  const head = document.getElementById('transcript').querySelector('.head span');
+  head.textContent = `— ${v.name}${partner ? ` & ${partner.name}` : ''} —`;
+  // Show last lines from this villager's history
+  const lines = v.chatHistory.slice(-12);
+  body.innerHTML = lines.map(l =>
+    `<div class="line ${l.foreign ? 'foreign' : ''}"><span class="who">${l.who.split(' ')[0]}:</span>${l.text}</div>`
+  ).join('') || '<em>Their conversation has not yet begun…</em>';
+  document.getElementById('transcript').classList.add('on');
+}
+function refreshTranscript() {
+  if (transcriptId === null) return;
+  const v = villagers.find(x => x.id === transcriptId);
+  if (!v || v.hp <= 0) { document.getElementById('transcript').classList.remove('on'); transcriptId = null; return; }
+  openTranscript(v);
+}
+
+/* ------- SECTION 25: LOG ------- */
+const logEntries = [];
+function log(msg, kind = '') {
+  logEntries.unshift({ stamp: `Day ${TIME.day}, ${phaseOfDay()}`, msg, kind });
+  if (logEntries.length > 80) logEntries.pop();
+  renderLog();
+}
+function renderLog() {
+  document.getElementById('log').innerHTML = logEntries.map(e =>
+    `<div class="log-entry event-${e.kind}"><span class="when">${e.stamp}.</span>${e.msg}</div>`
+  ).join('');
+}
+
+/* ------- SECTION 26: INPUT ------- */
+function screenToWorld(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  const mx = (clientX - r.left) * (canvas.width / r.width);
+  const my = (clientY - r.top) * (canvas.height / r.height);
+  return { wx: (mx - cam.x) / cam.scale, wy: (my - cam.y) / cam.scale };
+}
+function villagerAt(wx, wy, includeInside = false) {
+  let best = null, bd = 18;
+  for (const v of villagers) {
+    if (v.hp <= 0) continue;
+    if (!includeInside && v.inside) continue;
+    const d = Math.hypot(v.x - wx, v.y - wy);
+    if (d < bd) { bd = d; best = v; }
+  }
+  return best;
+}
+function enemyAt(wx, wy) {
+  let best = null, bd = 18;
+  for (const e of enemies) {
+    const d = Math.hypot(e.x - wx, e.y - wy);
+    if (d < bd) { bd = d; best = e; }
+  }
+  return best;
+}
+
+let dragStart = null;
+let mouseMoved = false;
+stage.addEventListener('mousedown', (ev) => {
+  if (ev.button !== 0) return;
+  const { wx, wy } = screenToWorld(ev.clientX, ev.clientY);
+  if (activePower) { applyTargetedPower(activePower, wx, wy); return; }
+  const v = villagerAt(wx, wy);
+  if (v) {
+    dragStart = { x: ev.clientX, y: ev.clientY, id: v.id };
+    heldOffsetX = wx - v.x; heldOffsetY = wy - v.y;
+    mouseMoved = false;
+  }
+});
+stage.addEventListener('mousemove', (ev) => {
+  const { wx, wy } = screenToWorld(ev.clientX, ev.clientY);
+  const hov = villagerAt(wx, wy);
+  hoverId = hov ? hov.id : null;
+  updateTooltip();
+  if (dragStart) {
+    if (!heldId && (Math.abs(ev.clientX - dragStart.x) > 5 || Math.abs(ev.clientY - dragStart.y) > 5)) {
+      heldId = dragStart.id;
+      const v = villagers.find(x => x.id === heldId);
+      if (v) {
+        v.path = []; v.inside = null; v.chatPartner = null; v.fightTarget = null; v.state = 'idle';
+        log(`A divine hand lifts ${v.name} from the earth.`, 'god');
+      }
+      stage.classList.add('dragging');
+      mouseMoved = true;
+    }
+    if (heldId) {
+      const v = villagers.find(x => x.id === heldId);
+      if (v) { v.x = wx - heldOffsetX; v.y = wy - heldOffsetY; }
+    }
+  }
+});
+stage.addEventListener('mouseup', (ev) => {
+  if (heldId) {
+    const v = villagers.find(x => x.id === heldId);
+    if (v) {
+      const g = worldToGrid(v.x, v.y);
+      const tile = map[g.gy] && map[g.gy][g.gx];
+      if (tile === 2) { v.fallingInWater = true; log(`${v.name} plunges into the river!`, 'god'); }
+      else if (tile === 3) {
+        log(`${v.name} is set down in the dark forest…`, 'god');
+        if (Math.random() < 0.3) enemies.push({ type: 'wolf', x: v.x + 80, y: v.y + 20, hp: 35, dmg: 0.6, speed: 0.9 });
+      } else log(`The divine hand releases ${v.name}.`, 'god');
+      decideAction(v);
+    }
+    heldId = null;
+    stage.classList.remove('dragging');
+  } else if (dragStart && !mouseMoved) {
+    const { wx, wy } = screenToWorld(ev.clientX, ev.clientY);
+    const v = villagerAt(wx, wy);
+    if (v) {
+      selectedId = v.id;
+      // If they're chatting, open transcript
+      if (v.chatPartner || (v.chatHistory && v.chatHistory.length > 0)) openTranscript(v);
+    } else {
+      selectedId = null;
+      document.getElementById('transcript').classList.remove('on');
+      transcriptId = null;
+    }
+    refreshPanel();
+  }
+  dragStart = null;
+});
+stage.addEventListener('mouseleave', () => {
+  if (heldId) {
+    const v = villagers.find(x => x.id === heldId);
+    if (v) { v.x = Math.max(20, Math.min(WORLD_W-20, v.x)); v.y = Math.max(20, Math.min(WORLD_H-20, v.y)); }
+    heldId = null;
+    stage.classList.remove('dragging');
+  }
+  hoverId = null;
+  updateTooltip();
+});
+
+document.querySelectorAll('.ctrl').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ctrl').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const s = parseInt(btn.dataset.speed, 10);
+    TIME.speed = s; TIME.paused = s === 0;
+  });
+});
+document.querySelectorAll('.god-btn').forEach(btn => {
+  btn.addEventListener('click', () => tryPower(btn.dataset.power));
+});
+document.getElementById('transcript-close').addEventListener('click', () => {
+  document.getElementById('transcript').classList.remove('on');
+  transcriptId = null;
+});
+// Escape cancels active power
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && activePower) {
+    activePower = null;
+    stage.classList.remove('god-targeting');
+    document.querySelectorAll('.god-btn').forEach(b => b.classList.remove('active'));
+  }
+});
+
+/* ------- SECTION 27: MAIN LOOP ------- */
+let lastT = performance.now();
+function loop(now) {
+  const realDt = Math.min(0.1, (now - lastT) / 1000);
+  lastT = now;
+  if (!TIME.paused) {
+    const dt = realDt * TIME.speed;
+    TIME.tick += dt * 10;
+    if (Math.floor(TIME.tick / TIME.ticksPerDay) + 1 !== TIME.day) {
+      TIME.day = Math.floor(TIME.tick / TIME.ticksPerDay) + 1;
+      log(`A new day dawns over Aldwyn.`);
+      // Faith regenerates daily
+      FAITH.value = Math.min(FAITH.max, FAITH.value + 30);
+    }
+    for (const v of villagers) {
+      if (v.hp <= 0) continue;
+      if (heldId === v.id) continue;
+      updateVillager(v, dt);
+      tryCourtship(v);
+      tryConception(v);
+      tickPregnancy(v);
+    }
+    updateEnemies(dt);
+    updateFires(dt);
+    updateWeather();
+    spreadPlague(dt);
+    updateFloatingLines(dt);
+    for (let i = corpses.length - 1; i >= 0; i--) {
+      corpses[i].ttl -= dt;
+      if (corpses[i].ttl <= 0) corpses.splice(i, 1);
+    }
+    if (Math.random() < dt * 0.003) spawnWolf();
+    if (Math.random() < dt * (CELESTIAL.bloodmoon ? 0.003 : 0.0008)) spawnRaid();
+    // Migration every ~10 days
+    if (TIME.tick - TIME._lastMigrant > TIME.ticksPerDay * 10 && Math.random() < dt * 0.5) {
+      TIME._lastMigrant = TIME.tick;
+      spawnMigrant();
+    }
+    if (TIME.tick - TIME._lastElection > TIME.ticksPerDay * 20) {
+      TIME._lastElection = TIME.tick;
+      if (TIME.day > 1) electMayor();
+    }
+  }
+  render();
+  refreshPanel();
+  refreshTranscript();
+  if (hoverId) updateTooltip();
+  requestAnimationFrame(loop);
+}
+
+/* ------- SECTION 28: BOOT ------- */
+seedVillage();
+log(`The village of Aldwyn awakens.`);
+log(`You stand watch as the unseen god. Use thy powers wisely.`, 'god');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
